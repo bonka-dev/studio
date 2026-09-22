@@ -1,0 +1,11 @@
+{
+  "id": "/devtools/",
+  "name": "Bonka",
+  "short_name": "Bonka Editor",
+  "description": "Bonka, a map editor for your GBA Project, with Butano Engine.",
+  "start_url": "/devtools/bonka/index.html",
+  "scope": "/devtools/bonka/",
+  "display": "standalone",
+  "background_color": "#020306",
+  "theme_color": "#020306"
+}

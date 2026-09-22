@@ -1,0 +1,4193 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#020306">
+    <link rel="manifest" href="./manifest.json">
+    <title>Bonka</title>
+    <style>
+        :root {
+            color-scheme: dark;
+            --ink: #e8e0ca;
+            --muted: #9b9588;
+            --paper: #171916;
+            --panel: #20221d;
+            --panel-2: #292b24;
+            --line: #3b3e33;
+            --gold: #e7b650;
+            --cyan: #70d7c7;
+            --red: #e67661;
+            --shadow: #090a08;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html {
+            height: 100%;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+            margin: 0;
+            min-width: 320px;
+            height: 100%;
+            overflow: hidden;
+            color: var(--ink);
+            background:
+                linear-gradient(rgba(255,255,255,.018) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,.018) 1px, transparent 1px),
+                radial-gradient(circle at 20% 0%, #30332a 0, #141612 42rem);
+            background-size: 24px 24px, 24px 24px, auto;
+            font-family: "IBM Plex Mono", "Cascadia Mono", Consolas, monospace;
+        }
+
+        button, input, select {
+            font: inherit;
+        }
+
+        button {
+            color: inherit;
+        }
+
+        .shell {
+            display: flex;
+            flex-direction: column;
+            width: min(1440px, 100%);
+            flex: 1;
+            min-height: 0;
+            margin: 0 auto;
+            padding: 10px 22px;
+        }
+
+        header {
+            display: flex;
+            align-items: end;
+            justify-content: space-between;
+            gap: 24px;
+            margin-bottom: 12px;
+            border-bottom: 1px solid var(--line);
+            padding-bottom: 10px;
+        }
+
+        h1 {
+            min-width: 0;
+            margin: 0;
+            overflow: hidden;
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: clamp(22px, 3vw, 34px);
+            font-weight: 500;
+            letter-spacing: -.035em;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .project-title {
+            color: var(--gold);
+        }
+
+        .header-help {
+            flex: 0 0 auto;
+            width: 32px;
+            height: 32px;
+            min-height: 32px;
+            padding: 0;
+            border-color: var(--line);
+            border-radius: 50%;
+            color: var(--gold);
+            background: var(--panel);
+            text-align: center;
+        }
+
+        .layout {
+            display: grid;
+            flex: 1;
+            grid-template-columns: minmax(270px, 330px) minmax(520px, 1fr) minmax(230px, 280px);
+            gap: 16px;
+            min-height: 0;
+            align-items: start;
+        }
+
+        .layout > *, .panel {
+            min-width: 0;
+        }
+
+        .left-stack, .right-stack {
+            display: grid;
+            gap: 16px;
+            max-height: 100%;
+            overflow-y: auto;
+            overflow-x: hidden;
+            align-content: start;
+            scrollbar-width: none;
+        }
+
+        .left-stack::-webkit-scrollbar,
+        .right-stack::-webkit-scrollbar,
+        .right-panel::-webkit-scrollbar,
+        .tile-map::-webkit-scrollbar,
+        .tile-palette::-webkit-scrollbar,
+        .layer-list::-webkit-scrollbar,
+        .history-list::-webkit-scrollbar {
+            display: none;
+        }
+
+        .panel {
+            overflow: hidden;
+            border: 1px solid var(--line);
+            border-radius: 4px;
+            background: rgba(29, 31, 26, .96);
+            box-shadow: 0 16px 38px rgba(0,0,0,.24);
+        }
+
+        .left-stack .panel, .right-stack .panel {
+            overflow: clip;
+        }
+
+        .panel-title {
+            position: sticky;
+            top: 0;
+            z-index: 2;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            min-height: 45px;
+            padding: 10px 34px 10px 13px;
+            border: 0;
+            border-bottom: 1px solid var(--line);
+            color: inherit;
+            background: var(--panel-2);
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: .12em;
+            text-align: left;
+            text-transform: uppercase;
+        }
+
+        .panel-title::after {
+            content: "";
+            position: absolute;
+            top: 50%;
+            right: 14px;
+            width: 7px;
+            height: 7px;
+            margin-top: -2px;
+            border-right: 2px solid var(--muted);
+            border-bottom: 2px solid var(--muted);
+            transform: rotate(-135deg);
+            transition: transform .15s ease;
+        }
+
+        .panel-title:hover {
+            background: #303229;
+        }
+
+        .panel-title:focus-visible {
+            outline: 2px solid var(--gold);
+            outline-offset: -2px;
+        }
+
+        .panel.collapsed > .panel-title {
+            border-bottom: 0;
+        }
+
+        .panel.collapsed > .panel-title::after {
+            margin-top: -5px;
+            transform: rotate(45deg);
+        }
+
+        .panel.collapsed > :not(.panel-title) {
+            display: none;
+        }
+
+        .badge {
+            padding: 3px 6px;
+            border: 1px solid #565a49;
+            border-radius: 2px;
+            color: var(--cyan);
+            font-size: 10px;
+            letter-spacing: .04em;
+        }
+
+        .palette-controls {
+            display: flex;
+            gap: 7px;
+            padding: 10px;
+            border-bottom: 1px solid var(--line);
+        }
+
+        .palette-controls .search {
+            min-width: 0;
+        }
+
+        .tileset-accordion {
+            width: 100%;
+            max-width: 100%;
+            border-bottom: 1px solid var(--line);
+        }
+
+        .tileset-accordion summary {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-height: 34px;
+            padding: 7px 10px;
+            cursor: pointer;
+            color: var(--cyan);
+            font-size: 10px;
+            font-weight: 700;
+        }
+
+        .tileset-accordion summary input {
+            min-width: 0;
+            flex: 1;
+            padding: 3px 5px;
+            border: 0;
+            color: inherit;
+            background: transparent;
+            font: inherit;
+        }
+
+        .tileset-accordion summary input:focus {
+            outline: 1px solid var(--gold);
+        }
+
+        .tile-map-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 7px;
+            padding: 9px 10px;
+            border-bottom: 1px solid var(--line);
+        }
+
+        .tile-map-controls .field {
+            margin: 0;
+        }
+
+        .metatile-controls {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 42px 42px auto auto;
+            gap: 7px;
+            padding: 9px 10px;
+            border-bottom: 1px solid var(--line);
+        }
+
+        .metatile-editor {
+            display: grid;
+            grid-template-columns: repeat(4, 36px);
+            gap: 2px;
+            width: max-content;
+            margin: 10px auto;
+        }
+
+        .metatile-cell {
+            position: relative;
+            width: 36px;
+            height: 36px;
+            padding: 0;
+            border: 1px solid #484b3f;
+            background: #11130f;
+        }
+
+        .metatile-cell canvas {
+            width: 32px;
+            height: 32px;
+            image-rendering: pixelated;
+        }
+
+        .metatile-cell.collision::after {
+            content: "";
+            position: absolute;
+            inset: 1px;
+            border: 2px solid var(--red);
+            background: rgba(230, 118, 97, .22);
+            pointer-events: none;
+        }
+
+        .metatile-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, 48px);
+            gap: 5px;
+            max-height: 140px;
+            overflow: auto;
+            padding: 10px;
+        }
+
+        .metatile-button {
+            width: 48px;
+            height: 48px;
+            padding: 0;
+            border: 1px solid #484b3f;
+            background: #11130f;
+        }
+
+        .metatile-button.selected {
+            border-color: var(--gold);
+            box-shadow: 0 0 0 1px var(--gold);
+        }
+
+        .metatile-button canvas {
+            width: 46px;
+            height: 46px;
+            image-rendering: pixelated;
+        }
+
+        .tile-map {
+            display: grid;
+            gap: 3px;
+            max-height: 180px;
+            width: 100%;
+            min-width: 0;
+            max-width: 100%;
+            padding: 10px;
+            overflow: auto;
+            align-content: start;
+            scrollbar-width: none;
+        }
+
+        .tile-map-cell {
+            width: 28px;
+            height: 28px;
+            padding: 0;
+            border: 1px solid #484b3f;
+            border-radius: 2px;
+            background: #11130f;
+            cursor: pointer;
+        }
+
+        .tile-map-cell:hover, .tile-map-cell.selected {
+            border-color: var(--gold);
+        }
+
+        .tile-map-cell.selected {
+            box-shadow: 0 0 0 1px rgba(231,182,80,.45);
+        }
+
+        .tile-map-cell canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            image-rendering: pixelated;
+        }
+
+        .search, .number-input {
+            width: 100%;
+            border: 1px solid #484b3f;
+            border-radius: 3px;
+            outline: 0;
+            color: var(--ink);
+            background: #11130f;
+        }
+
+        .search {
+            padding: 8px 9px;
+        }
+
+        .search:focus, .number-input:focus {
+            border-color: var(--gold);
+            box-shadow: 0 0 0 2px rgba(231,182,80,.12);
+        }
+
+        .tile-palette {
+            max-height: calc(100vh - 210px);
+            min-height: 330px;
+            overflow: auto;
+            scrollbar-width: none;
+        }
+
+        .tileset-subtiles {
+            display: grid;
+            gap: 4px;
+            padding: 10px;
+            align-content: start;
+            width: max-content;
+        }
+
+        .tileset-scroll {
+            max-height: 260px;
+            overflow: auto;
+        }
+
+        .tile-button {
+            position: relative;
+            width: 48px;
+            height: 52px;
+            padding: 0;
+            border: 1px solid #3f4237;
+            border-radius: 3px;
+            cursor: pointer;
+            background-color: #151713;
+        }
+
+        .tile-button canvas {
+            position: absolute;
+            top: 3px;
+            left: 7px;
+            width: 32px;
+            height: 32px;
+            image-rendering: pixelated;
+        }
+
+        .tile-button span {
+            position: absolute;
+            right: 3px;
+            bottom: 2px;
+            color: #aaa697;
+            font-size: 9px;
+        }
+
+        .tile-button:hover {
+            border-color: var(--cyan);
+            transform: translateY(-1px);
+        }
+
+        .tile-button.selected {
+            border-color: var(--gold);
+            box-shadow: inset 0 0 0 1px var(--gold), 0 0 0 2px rgba(231,182,80,.13);
+            background-color: #2c291d;
+        }
+
+        .canvas-panel {
+            position: sticky;
+            top: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            min-height: 0;
+            padding-bottom: 12px;
+        }
+
+        .canvas-tabs {
+            display: flex;
+            border-bottom: 1px solid var(--line);
+            background: var(--panel-2);
+        }
+
+        .canvas-tab {
+            flex: 1;
+            min-height: 45px;
+            border: 0;
+            border-right: 1px solid var(--line);
+            cursor: pointer;
+            color: var(--muted);
+            background: transparent;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+        }
+
+        .canvas-tab.active {
+            color: var(--gold);
+            background: var(--panel);
+            box-shadow: inset 0 -2px 0 var(--gold);
+        }
+
+        .canvas-tab-content[hidden] {
+            display: none;
+        }
+
+        .canvas-tab-content:not([hidden]) {
+            display: flex;
+            flex: 1;
+            flex-direction: column;
+            min-height: 0;
+            overflow: auto;
+        }
+
+        .background-map-wrap {
+            width: min(512px, calc(100% - 24px));
+            margin: 12px auto 8px;
+            border: 1px solid #55594a;
+            background: #11130f;
+        }
+
+        #backgroundMapCanvas {
+            display: block;
+            width: 100%;
+            height: auto;
+            image-rendering: pixelated;
+            cursor: crosshair;
+        }
+
+        .tilemap-toolbar-info {
+            display: grid;
+            gap: 7px;
+        }
+
+        .tilemap-overlay-controls {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 10px;
+            color: var(--muted);
+            font-size: 10px;
+        }
+
+        .inline-toggle, .opacity-control {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .inline-toggle input, .opacity-control input {
+            accent-color: var(--gold);
+        }
+
+        .opacity-control input {
+            width: 90px;
+        }
+
+        .opacity-control output {
+            min-width: 30px;
+            color: var(--cyan);
+            text-align: right;
+        }
+
+        .canvas-toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            padding: 9px 11px;
+            border-bottom: 1px solid var(--line);
+        }
+
+        .tool-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .icon-action {
+            display: inline-grid;
+            width: 32px;
+            place-items: center;
+        }
+
+        .action.icon-action {
+            padding: 0;
+        }
+
+        .action.header-help {
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .icon-action svg {
+            pointer-events: none;
+        }
+
+        .tool, .action {
+            min-height: 32px;
+            padding: 6px 9px;
+            border: 1px solid #484b3f;
+            border-radius: 3px;
+            cursor: pointer;
+            background: #181a16;
+            font-size: 11px;
+        }
+
+        a.action {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+        }
+
+        .tool:hover, .action:hover {
+            border-color: #747967;
+            background: #24271f;
+        }
+
+        .tool.active {
+            border-color: var(--cyan);
+            color: #0b1715;
+            background: var(--cyan);
+            font-weight: 700;
+        }
+
+        .action.primary {
+            border-color: var(--gold);
+            color: #17140d;
+            background: var(--gold);
+            font-weight: 800;
+        }
+
+        .action.danger:hover {
+            border-color: var(--red);
+            color: var(--red);
+        }
+
+        .canvas-wrap {
+            position: relative;
+            width: min(512px, calc(100% - 24px));
+            aspect-ratio: 1;
+            margin: 12px auto 8px;
+            overflow: hidden;
+            border: 1px solid #55594a;
+            background-color: #11130f;
+            background-image:
+                linear-gradient(45deg, #1c1e19 25%, transparent 25%),
+                linear-gradient(-45deg, #1c1e19 25%, transparent 25%),
+                linear-gradient(45deg, transparent 75%, #1c1e19 75%),
+                linear-gradient(-45deg, transparent 75%, #1c1e19 75%);
+            background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+            background-size: 16px 16px;
+            touch-action: none;
+        }
+
+        .canvas-stage {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 512px;
+            height: 512px;
+            transform-origin: 0 0;
+            will-change: transform;
+        }
+
+        canvas {
+            display: block;
+            width: 512px;
+            height: 512px;
+            cursor: crosshair;
+            image-rendering: pixelated;
+        }
+
+        .canvas-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            width: min(512px, calc(100% - 24px));
+            margin: 0 auto;
+            color: var(--muted);
+            font-size: 10px;
+        }
+
+        .inspector {
+            padding: 13px;
+        }
+
+        .project-panel .field {
+            grid-template-columns: 48px minmax(0, 1fr);
+            margin-bottom: 0;
+        }
+
+        .project-metrics {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1px;
+            border: 1px solid var(--line);
+            background: var(--line);
+        }
+
+        .project-metric {
+            min-width: 0;
+            padding: 8px;
+            background: #181a16;
+        }
+
+        .project-metric h2 {
+            margin-bottom: 5px;
+            font-size: 8px;
+        }
+
+        .project-metric p {
+            margin: 0;
+            color: var(--ink);
+            font-size: 11px;
+            white-space: nowrap;
+        }
+
+        #commandsDialog {
+            width: min(620px, calc(100vw - 32px));
+            max-height: min(700px, calc(100vh - 32px));
+            padding: 0;
+            border: 1px solid var(--line);
+            border-radius: 5px;
+            color: var(--ink);
+            background: var(--panel);
+            box-shadow: 0 24px 70px rgba(0, 0, 0, .6);
+        }
+
+        #commandsDialog::backdrop {
+            background: rgba(2, 3, 2, .72);
+            backdrop-filter: blur(2px);
+        }
+
+        .commands-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 13px 14px;
+            border-bottom: 1px solid var(--line);
+            background: var(--panel-2);
+        }
+
+        .commands-header h2 {
+            margin: 0;
+            color: var(--gold);
+            font-size: 12px;
+            letter-spacing: .13em;
+            text-transform: uppercase;
+        }
+
+        .commands-body {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+            gap: 1.5rem;
+            padding: 16px;
+        }
+
+        .commands-column {
+            display: grid;
+            align-content: start;
+            gap: 18px;
+        }
+
+        .commands-body section h3 {
+            margin: 0 0 8px;
+            color: var(--cyan);
+            font-size: 10px;
+            letter-spacing: .1em;
+            text-transform: uppercase;
+        }
+
+        .commands-body p {
+            margin: 0;
+            color: var(--muted);
+            font-size: 11px;
+            line-height: 1.6;
+        }
+
+        .commands-list {
+            display: grid;
+            gap: 5px;
+            margin: 0;
+        }
+
+        .commands-list div {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 10px;
+            align-items: center;
+            color: var(--muted);
+            font-size: 10px;
+            padding: 0.25rem 0;
+            border-bottom: 1px solid #323232;
+        }
+
+        .commands-list div:last-child {
+            border: 0;
+        }
+
+        .commands-list div span:last-child {
+            width: 75px;
+            text-align: right;
+        }
+
+        .context-list {
+            display: grid;
+            margin: 0;
+        }
+
+        .context-list[hidden] {
+            display: none;
+        }
+
+        .context-row {
+            display: grid;
+            grid-template-columns: 72px minmax(0, 1fr);
+            gap: 10px;
+            padding: 7px 0;
+            border-bottom: 1px solid var(--line);
+            font-size: 10px;
+        }
+
+        .context-row[hidden] {
+            display: none;
+        }
+
+        .context-row:first-child {
+            padding-top: 0;
+        }
+
+        .context-row:last-child {
+            padding-bottom: 0;
+            border-bottom: 0;
+        }
+
+        .context-row dt {
+            color: var(--muted);
+        }
+
+        .context-row dd {
+            min-width: 0;
+            margin: 0;
+            overflow: hidden;
+            color: var(--ink);
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .context-input {
+            width: 100%;
+            padding: 4px 6px;
+            font-size: 10px;
+        }
+
+        .context-checkbox {
+            accent-color: var(--gold);
+        }
+
+        .property-slider {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 34px;
+            align-items: center;
+            gap: 7px;
+        }
+
+        .property-slider input {
+            width: 100%;
+            min-width: 0;
+            accent-color: var(--gold);
+        }
+
+        .property-slider output {
+            color: var(--cyan);
+            text-align: right;
+        }
+
+        .right-panel {
+            min-height: 0;
+        }
+
+        .history-list {
+            display: grid;
+            max-height: 120px;
+            overflow-y: auto;
+            padding: 7px;
+            scrollbar-width: none;
+        }
+
+        .history-entry {
+            position: relative;
+            display: grid;
+            grid-template-columns: 20px minmax(0, 1fr);
+            align-items: center;
+            width: 100%;
+            min-height: 34px;
+            padding: 6px 8px;
+            border: 0;
+            border-bottom: 1px solid #34372e;
+            color: var(--muted);
+            background: transparent;
+            cursor: pointer;
+            font-size: 10px;
+            text-align: left;
+        }
+
+        .history-entry::before {
+            content: "";
+            width: 7px;
+            height: 7px;
+            border: 1px solid #656958;
+            border-radius: 50%;
+            background: #181a16;
+        }
+
+        .history-entry:hover {
+            color: var(--ink);
+            background: #272920;
+        }
+
+        .history-entry.active {
+            color: var(--ink);
+            background: #302c1f;
+            box-shadow: inset 2px 0 0 var(--gold);
+        }
+
+        .history-entry.active::before {
+            border-color: var(--gold);
+            background: var(--gold);
+            box-shadow: 0 0 0 2px rgba(231,182,80,.14);
+        }
+
+        .history-entry.future {
+            opacity: .42;
+        }
+
+        .history-entry span {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .section {
+            margin-bottom: 20px;
+        }
+
+        .section:last-child {
+            margin-bottom: 0;
+        }
+
+        .section h2 {
+            margin: 0 0 10px;
+            color: var(--gold);
+            font-size: 10px;
+            letter-spacing: .13em;
+            text-transform: uppercase;
+        }
+
+        .field {
+            display: grid;
+            grid-template-columns: 1fr 76px;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+            color: var(--muted);
+            font-size: 11px;
+        }
+
+        .number-input {
+            padding: 6px;
+        }
+
+        .pill-editor {
+            display: block;
+            min-width: 0;
+            width: 100%;
+        }
+
+        .pill-edit-button {
+            display: flex;
+            width: 100%;
+            min-height: 28px;
+            padding: 5px 10px;
+            overflow: hidden;
+            border: 0;
+            border-radius: 999px;
+            color: var(--ink);
+            background: #181a16;
+            cursor: pointer;
+            font: inherit;
+            font-size: 10px;
+            align-items: center;
+            justify-content: center;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .pill-edit-button:hover {
+            border-color: var(--cyan);
+        }
+
+        .pill-editor:not(.editing) .pill-edit-control {
+            display: none;
+        }
+
+        .pill-editor.editing .pill-edit-button {
+            display: none;
+        }
+
+        .pill-editor.editing .pill-edit-control {
+            display: block;
+            width: 100%;
+        }
+
+        .stat-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1px;
+            border: 1px solid var(--line);
+            border-bottom: 0;
+            background: var(--line);
+        }
+
+        .stat {
+            padding: 10px;
+            background: #181a16;
+        }
+
+        .stat strong {
+            display: block;
+            margin-bottom: 3px;
+            color: var(--ink);
+            font-size: 18px;
+            font-weight: 500;
+        }
+
+        .stat span {
+            color: var(--muted);
+            font-size: 9px;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+        }
+
+        .stack {
+            display: grid;
+            gap: 7px;
+        }
+
+        .stack .action {
+            width: 100%;
+        }
+
+        .hint {
+            margin: 9px 0 0;
+            color: var(--muted);
+            font-size: 10px;
+            line-height: 1.55;
+        }
+
+        .status {
+            justify-self: end;
+            max-width: 100%;
+            min-width: 0;
+            overflow: hidden;
+            padding-left: 10px;
+            border-left: 2px solid var(--cyan);
+            color: #b8b4a7;
+            font-size: 10px;
+            line-height: 1.5;
+            text-align: right;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .status.error {
+            border-color: var(--red);
+            color: #efad9f;
+        }
+
+        .status-bar {
+            display: grid;
+            grid-template-columns: minmax(0, 3fr) auto minmax(0, 1fr);
+            align-items: center;
+            gap: 16px;
+            min-height: 34px;
+            padding: 7px max(22px, calc((100vw - 1440px) / 2 + 22px));
+            border-top: 1px solid var(--line);
+            color: var(--muted);
+            background: rgba(18, 20, 16, .97);
+            font-size: 10px;
+        }
+
+        .status-controls {
+            display: flex;
+            align-items: center;
+            justify-self: center;
+            gap: 4px;
+        }
+
+        .status-action {
+            width: 24px;
+            height: 24px;
+            min-height: 24px;
+            padding: 0;
+            border-color: transparent;
+            background: transparent;
+        }
+
+        .zoom-slider {
+            width: 120px;
+            accent-color: var(--gold);
+        }
+
+        #cursorPosition {
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .toggle {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            margin-bottom: 8px;
+            color: var(--muted);
+            font-size: 11px;
+        }
+
+        .toggle input {
+            accent-color: var(--gold);
+        }
+
+        .layer-list {
+            display: grid;
+            gap: 5px;
+            max-height: 260px;
+            margin-bottom: 8px;
+            overflow-y: auto;
+            scrollbar-width: none;
+        }
+
+        .layer-row {
+            display: grid;
+            grid-template-columns: 31px 31px minmax(0, 1fr);
+            align-items: center;
+            gap: 5px;
+            padding: 5px;
+            border: 1px solid #3d4035;
+            border-radius: 3px;
+            cursor: pointer;
+            background: #181a16;
+        }
+
+        .layer-row.dragging {
+            opacity: .45;
+        }
+
+        .layer-row.drag-over {
+            border-color: var(--cyan);
+            box-shadow: inset 0 2px 0 var(--cyan);
+        }
+
+        .layer-row.group-row.drag-over {
+            background: #24291f;
+            box-shadow: inset 3px 0 0 var(--cyan);
+        }
+
+        .layer-row:hover {
+            border-color: #626755;
+        }
+
+        .layer-row.active {
+            border-color: var(--gold);
+            background: #29271d;
+            box-shadow: inset 3px 0 0 var(--gold);
+        }
+
+        .layer-row.group-row {
+            grid-template-columns: 31px minmax(0, 1fr);
+            background: #151714;
+        }
+
+        .layer-row.group-row.active {
+            border-color: var(--gold);
+        }
+
+        .layer-type-icon {
+            display: grid;
+            width: 31px;
+            height: 28px;
+            place-items: center;
+            color: var(--cyan);
+        }
+
+        .group-row .layer-type-icon {
+            color: var(--gold);
+        }
+
+        .layer-icon {
+            display: grid;
+            width: 31px;
+            height: 28px;
+            padding: 0;
+            place-items: center;
+            border: 1px solid #414438;
+            border-radius: 2px;
+            cursor: pointer;
+            color: var(--muted);
+            background: #11130f;
+        }
+
+        .layer-icon:hover {
+            border-color: var(--cyan);
+            color: var(--cyan);
+        }
+
+        .layer-name {
+            min-width: 0;
+            font-size: 11px;
+        }
+
+        .layer-name strong, .layer-name small {
+            display: block;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .layer-name small {
+            margin-top: 2px;
+            color: var(--muted);
+            font-size: 9px;
+        }
+
+        .layer-dirty {
+            color: var(--gold);
+        }
+
+        .layer-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+        }
+
+        .kbd {
+            display: inline-block;
+            min-width: 18px;
+            max-width: min-content;
+            padding: 1px 5px;
+            border: 1px solid #4a4d41;
+            border-bottom-width: 2px;
+            border-radius: 2px;
+            color: #c7c1b1;
+            background: #20221d;
+            /* text-align: center; */
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        @media (max-width: 1080px) {
+            body {
+                height: auto;
+                min-height: 100%;
+                overflow: auto;
+            }
+
+            .shell {
+                flex: initial;
+                height: auto;
+                min-height: 100%;
+            }
+
+            .layout {
+                flex: initial;
+                grid-template-columns: 260px minmax(500px, 1fr);
+            }
+
+            .left-stack, .right-stack {
+                max-height: none;
+                overflow: visible;
+            }
+
+            .canvas-panel {
+                top: 12px;
+                height: auto;
+                max-height: calc(100vh - 24px);
+            }
+
+            .right-stack {
+                grid-column: 1 / -1;
+            }
+
+            .right-panel .inspector {
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 20px;
+            }
+        }
+
+        @media (max-width: 780px) {
+            .shell {
+                padding: 12px;
+            }
+
+            .status-bar {
+                gap: 6px;
+                padding: 7px 12px;
+            }
+
+            .status-controls {
+                gap: 2px;
+            }
+
+            .zoom-slider {
+                width: 80px;
+            }
+
+            .commands-body {
+                grid-template-columns: 1fr;
+            }
+
+            header {
+                display: block;
+            }
+
+            .layout {
+                display: flex;
+                flex-direction: column;
+            }
+
+            .panel {
+                width: 100%;
+            }
+
+            .left-stack {
+                order: 2;
+            }
+
+            .canvas-panel {
+                order: 1;
+                position: static;
+                max-height: none;
+            }
+
+            .right-stack {
+                order: 3;
+            }
+
+            .tile-palette {
+                grid-template-columns: repeat(auto-fill, 48px);
+                max-height: 290px;
+                min-height: 0;
+            }
+
+            .right-panel .inspector {
+                display: block;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main class="shell">
+        <header>
+            <h1>Bonka • <span class="project-title" id="projectTitle">untitled</span></h1>
+            <button class="action header-help" id="commandsButton" type="button" title="Commands" aria-label="Open commands"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-info-circle" viewBox="0 0 16 16"><path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"/><path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0"/></svg></button>
+        </header>
+
+        <div class="layout">
+            <div class="left-stack">
+                <section class="panel project-panel">
+                    <button class="panel-title" type="button" aria-expanded="true" title="Collapse panel">
+                        <span>Project</span>
+                    </button>
+                    <div class="inspector">
+                        <section class="section">
+                            <label class="field">
+                                <span>Name</span>
+                                <input class="number-input" id="projectNameInput" type="text" maxlength="64" placeholder="untitled">
+                            </label>
+                        </section>
+                        <section class="section">
+                            <h2>Map state</h2>
+                            <div class="stat-grid">
+                                <div class="stat"><strong id="tileCount">0</strong><span>Tiles</span></div>
+                                <div class="stat"><strong id="enemyCount">0</strong><span>Enemies</span></div>
+                            </div>
+                            <div class="project-metrics" aria-label="Map dimensions">
+                                <section class="project-metric">
+                                    <h2>Map size</h2>
+                                    <p>32×64 tiles</p>
+                                </section>
+                                <section class="project-metric">
+                                    <h2>Tile size</h2>
+                                    <p>32×32 px</p>
+                                </section>
+                                <section class="project-metric">
+                                    <h2>Grid size</h2>
+                                    <p>16×8 px</p>
+                                </section>
+                            </div>
+                        </section>
+                        
+                        <section class="section">
+                            <h2>File</h2>
+                            <div class="stack">
+                                <button class="action" id="importButton">Import Scene</button>
+                                <button class="action" id="exportButton">Export Scene</button>
+                                <button class="action danger" id="clearButton">Clear Map</button>
+                            </div>
+                            <input id="fileInput" type="file" accept=".json,application/json">
+                            <p class="hint">A Scene contains its layers, objects, embedded tilesets and metatiles in one JSON file.</p>
+                        </section>
+                    </div>
+                </section>
+                <section class="panel tile-map-panel">
+                    <button class="panel-title" type="button" aria-expanded="true" title="Collapse panel">
+                        <span>Metatiles</span>
+                        <span class="badge" id="metatileBadge">0</span>
+                    </button>
+                    <div class="metatile-controls">
+                        <input class="number-input" id="metatileNameInput" type="text" maxlength="64" placeholder="Metatile name">
+                        <input class="number-input" id="metatileColumnsInput" type="number" min="1" max="32" value="4" title="Metatile columns" aria-label="Metatile columns">
+                        <input class="number-input" id="metatileRowsInput" type="number" min="1" max="32" value="4" title="Metatile rows" aria-label="Metatile rows">
+                        <button class="action" id="metatileModeButton" type="button">Tiles</button>
+                        <button class="action" id="addMetatileButton" type="button">+ Meta</button>
+                    </div>
+                    <div class="metatile-editor" id="metatileEditor" aria-label="4 by 4 metatile editor"></div>
+                    <div class="metatile-list" id="metatileList" aria-label="Metatiles"></div>
+                </section>
+                <section class="panel palette-panel">
+                    <button class="panel-title" type="button" aria-expanded="true" title="Collapse panel">
+                        <span>Tileset</span>
+                        <span class="badge" id="selectedBadge">Tile 003</span>
+                    </button>
+                    <div class="palette-controls">
+                        <input class="search" id="tileSearch" type="search" placeholder="Search tile ID…" aria-label="Search tile ID">
+                        <button class="action" id="tilesetImportButton" type="button">Import</button>
+                        <input id="tilesetFileInput" type="file" accept="image/png" hidden>
+                    </div>
+                    <div class="tile-palette" id="tilePalette" aria-label="Tile selection"></div>
+                </section>
+            </div>
+
+            <section class="panel canvas-panel">
+                <div class="canvas-tabs" role="tablist" aria-label="Background editor views">
+                    <button class="canvas-tab active" data-canvas-tab="regular" role="tab" aria-selected="true">Regular Background</button>
+                    <button class="canvas-tab" data-canvas-tab="background-map" role="tab" aria-selected="false" hidden>Tilemap</button>
+                </div>
+                <div class="canvas-tab-content" data-canvas-tab-content="regular">
+                <div class="canvas-toolbar">
+                    <div class="tool-group">
+                        <button class="action icon-action" id="undoButton" title="Undo (Ctrl+Z)" aria-label="Undo"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 14-5-5 5-5"/><path d="M4 9h10a6 6 0 1 1 0 12h-3"/></svg></button>
+                        <button class="action icon-action" id="redoButton" title="Redo (Ctrl+Y)" aria-label="Redo"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 14 5-5-5-5"/><path d="M20 9H10a6 6 0 1 0 0 12h3"/></svg></button>
+                    </div>
+                    <div class="tool-group" id="tools">
+                        <button class="tool" data-tool="select" title="Keyboard shortcut: S">Select <span class="kbd">S</span></button>
+                        <button class="tool active" data-tool="tile" title="Keyboard shortcut: T">Tile <span class="kbd">T</span></button>
+                        <button class="tool" data-tool="object" title="Keyboard shortcut: O">Object <span class="kbd">O</span></button>
+                        <button class="tool" data-tool="player" title="Keyboard shortcut: P">Player <span class="kbd">P</span></button>
+                        <button class="tool" data-tool="enemy" title="Keyboard shortcut: E">Enemy <span class="kbd">E</span></button>
+                        <button class="tool" data-tool="erase" title="Keyboard shortcut: X">Erase <span class="kbd">X</span></button>
+                    </div>
+                </div>
+
+                <div class="canvas-wrap">
+                    <div class="canvas-stage" id="canvasStage">
+                        <canvas id="mapCanvas" width="512" height="512" aria-label="Bonka map editor"></canvas>
+                    </div>
+                </div>
+                <div class="canvas-footer">
+                    <a class="action" id="downloadRegularBackgroundButton" href="#" download="untitled.bmp">Download BMP</a>
+                </div>
+                </div>
+                <div class="canvas-tab-content" data-canvas-tab-content="background-map" hidden>
+                    <div class="canvas-toolbar">
+                        <div class="tilemap-toolbar-info">
+                            <span class="hint">32×32 8×8 tiles · Select a cell in the Tileset, then place it.</span>
+                            <div class="tilemap-overlay-controls">
+                                <label class="inline-toggle"><span>Show tile indices</span><input id="tilemapIndexToggle" type="checkbox"></label>
+                                <label class="opacity-control"><span>Opacity</span><input id="tilemapIndexOpacity" type="range" min="0.1" max="1" step="0.05" value="0.6" disabled><output id="tilemapIndexOpacityValue">60%</output></label>
+                            </div>
+                        </div>
+                        <div class="tool-group">
+                            <a class="action" id="downloadBackgroundTilesButton" href="#" download="untitled_tileset.bmp">Tileset BMP</a>
+                            <button class="action" id="downloadBackgroundMapButton">Export map</button>
+                        </div>
+                    </div>
+                    <div class="background-map-wrap">
+                        <canvas id="backgroundMapCanvas" width="256" height="256" aria-label="Tilemap editor"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <div class="right-stack">
+                <aside class="panel right-panel">
+                    <button class="panel-title" type="button" aria-expanded="true" title="Collapse panel">
+                        <span>Outliner</span>
+                        <span class="badge" id="dirtyBadge">saved</span>
+                    </button>
+                    <div class="inspector">
+                    <section class="section">
+                        <h2>Layer</h2>
+                        <div class="layer-list" id="layerList" aria-label="Layers"></div>
+                        <div class="layer-actions">
+                            <button class="action" id="addTileLayerButton">+ Tile</button>
+                            <button class="action" id="addObjectLayerButton">+ Object</button>
+                            <button class="action" id="addGroupButton">+ Group</button>
+                            <button class="action danger" id="deleteLayerButton">Delete</button>
+                        </div>
+                    </section>
+
+                    <section class="section">
+                        <h2>View</h2>
+                        <label class="field">
+                            <span>Brush spacing (Iso steps)</span>
+                            <input class="number-input" id="brushSpacingInput" type="number" min="1" max="8" step="1" value="1">
+                        </label>
+                        <label class="toggle">
+                            <span>Show grid</span>
+                            <input id="gridToggle" type="checkbox" checked>
+                        </label>
+                        <label class="toggle">
+                            <span>Tile footprints</span>
+                            <input id="footprintToggle" type="checkbox">
+                        </label>
+                        <label class="toggle">
+                            <span>Flip tile horizontally</span>
+                            <input id="tileFlipInput" type="checkbox">
+                        </label>
+                    </section>
+
+                    </div>
+                </aside>
+                <section class="panel inspector-panel">
+                    <button class="panel-title" type="button" aria-expanded="true" title="Collapse panel">
+                        <span>Properties</span>
+                        <span class="badge" id="inspectorBadge">Tile</span>
+                    </button>
+                    <div class="inspector">
+                        <dl class="context-list" id="layerInspector">
+                            <div class="context-row"><dt>Layer ID</dt><dd id="inspectorLayerId">0</dd></div>
+                            <div class="context-row"><dt>Name</dt><dd><input class="number-input context-input" id="inspectorLayerName" type="text" maxlength="64" value="Layer 0" aria-label="Layer name"></dd></div>
+                            <div class="context-row"><dt>Visible</dt><dd><input class="context-checkbox" id="inspectorLayerVisible" type="checkbox" checked aria-label="Layer visible"></dd></div>
+                            <div class="context-row"><dt>Opacity</dt><dd class="property-slider"><input id="inspectorLayerOpacity" type="range" min="0" max="1" step="0.05" value="1" aria-label="Layer opacity"><output id="inspectorLayerOpacityValue">100%</output></dd></div>
+                            <div class="context-row"><dt>Z-offset</dt><dd><input class="number-input context-input" id="inspectorZOffset" type="number" min="-512" max="512" step="1" value="0" aria-label="Layer Z-offset in pixels"></dd></div>
+                            <div class="context-row"><dt>H-offset</dt><dd><input class="number-input context-input" id="inspectorHOffset" type="number" min="-512" max="512" step="1" value="0" aria-label="Layer horizontal offset in pixels"></dd></div>
+                        </dl>
+                        <dl class="context-list" id="groupInspector" hidden>
+                            <div class="context-row"><dt>Name</dt><dd><input class="number-input context-input" id="inspectorGroupName" type="text" maxlength="64" aria-label="Group name"></dd></div>
+                            <div class="context-row"><dt>Layers</dt><dd id="inspectorGroupLayers">0</dd></div>
+                        </dl>
+                        <dl class="context-list" id="objectInspector" hidden>
+                            <div class="context-row"><dt>Object ID</dt><dd id="inspectorObjectId">—</dd></div>
+                            <div class="context-row"><dt>Name</dt><dd><input class="number-input context-input" id="inspectorObjectName" type="text" maxlength="64" aria-label="Object name"></dd></div>
+                            <div class="context-row"><dt>Visible</dt><dd><input class="context-checkbox" id="inspectorObjectVisible" type="checkbox" aria-label="Object visible"></dd></div>
+                            <div class="context-row"><dt>X-position</dt><dd><input class="number-input context-input" id="inspectorObjectX" type="number" min="0" max="31" step="1" aria-label="Object X-position"></dd></div>
+                            <div class="context-row"><dt>Y-position</dt><dd><input class="number-input context-input" id="inspectorObjectY" type="number" min="0" max="63" step="1" aria-label="Object Y-position"></dd></div>
+                        </dl>
+                    </div>
+                </section>
+                <section class="panel history-panel">
+                    <button class="panel-title" type="button" aria-expanded="true" title="Collapse panel">
+                        <span>History</span>
+                        <span class="badge" id="historyBadge">0 / 0</span>
+                    </button>
+                    <div class="history-list" id="historyList" aria-label="Edit history"></div>
+                </section>
+            </div>
+        </div>
+    </main>
+    <dialog id="commandsDialog" aria-labelledby="commandsTitle">
+        <div class="commands-header">
+            <h2 id="commandsTitle">Commands</h2>
+            <button class="action icon-action" id="commandsCloseButton" type="button" title="Close commands" aria-label="Close commands"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
+        </div>
+        <div class="commands-body">
+            <div class="commands-column">
+                <section>
+                    <h3>Navigation</h3>
+                    <div class="commands-list">
+                        <div><span>Paint with the active tool</span><span><span class="kbd">Drag</span></span></div>
+                        <div><span>Zoom the canvas</span><span><span class="kbd">Scroll</span></span></div>
+                        <div><span>Pan the canvas</span><span><span class="kbd">Alt</span> + <span class="kbd">LMB</span> or <span title="Middle Mouse Button" class="kbd">MMB</span></span></div>
+                    </div>
+                </section>
+                <section>
+                    <h3>Actions</h3>
+                    <div class="commands-list">
+                        <div><span>Paint or place the active tool</span><span><span title="Left Mouse Button" class="kbd">LBM</span></span></div>
+                        <div><span>Erase at the current position</span><span><span title="Right Mouse Button" class="kbd">RMB</span></span></div>
+                        <div><span>Select a tileset subtile, then choose a metatile cell to place it</span><span><span class="kbd">Metatile edit</span></span></div>
+                    </div>
+                </section>
+            </div>
+            <section>
+                <h3>Keyboard shortcuts</h3>
+                <div class="commands-list">
+                    <div><span>Select an object</span><span><span class="kbd">S</span></span></div>
+                    <div><span>Tile tool</span><span><span class="kbd">T</span></span></div>
+                    <div><span>Object tool</span><span><span class="kbd">O</span></span></div>
+                    <div><span>Player / enemy object</span><span><span class="kbd">P</span> or <span class="kbd">E</span></span></div>
+                    <div><span>Erase tool</span><span><span class="kbd">X</span></span></div>
+                    <div><span>Toggle grid</span><span><span class="kbd">G</span></span></div>
+                    <div><span>Undo</span><span><span class="kbd">Ctrl</span> + <span class="kbd">Z</span></span></div>
+                    <div><span>Redo</span><span><span class="kbd">Ctrl</span> + <span class="kbd">Y</span></span></div>
+                </div>
+            </section>
+        </div>
+    </dialog>
+    <footer class="status-bar">
+        <span id="cursorPosition">cell —, —</span>
+        <div class="status-controls" aria-label="Canvas zoom controls">
+            <button class="action icon-action status-action" id="zoomOutButton" title="Zoom out" aria-label="Zoom out"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/></svg></button>
+            <input class="zoom-slider" id="zoomSlider" type="range" min="50" max="400" step="5" value="100" title="Zoom: 100%" aria-label="Canvas zoom">
+            <button class="action icon-action status-action" id="zoomInButton" title="Zoom in" aria-label="Zoom in"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5v14"/></svg></button>
+            <button class="action icon-action status-action" id="zoomResetButton" title="Reset to 100%" aria-label="Reset zoom to 100%"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M2 12h20M9 5l3-3 3 3M9 19l3 3 3-3M5 9l-3 3 3 3M19 9l3 3-3 3"/></svg></button>
+            <button class="action icon-action status-action" id="fitButton" title="Fit to viewport" aria-label="Fit map to viewport"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5"/></svg></button>
+        </div>
+        <div class="status" id="status" role="status">Loading spritesheet…</div>
+    </footer>
+
+    <script>
+        "use strict";
+
+        const CELL_W = 16;
+        const CELL_H = 8;
+        const CELLS_X = 32;
+        const CELLS_Y = 64;
+        const TILE_SIZE = 32;
+        const TILE_COLS = 11;
+        const MAX_TILE_ID = 120;
+        const EMPTY_TILE_IDS = new Set([86, 87, 97, 98, 108, 109]);
+        const BLOCKING_BASE_IDS = new Set(Array.from({ length: 13 }, (_, index) => index + 48));
+        const SHEET_URL = window.SPRITESHEET_DATA_URL;
+
+        const canvas = document.getElementById("mapCanvas");
+        const context = canvas.getContext("2d");
+        const canvasWrap = document.querySelector(".canvas-wrap");
+        const canvasStage = document.getElementById("canvasStage");
+        const commandsDialog = document.getElementById("commandsDialog");
+        const palette = document.getElementById("tilePalette");
+        const layerList = document.getElementById("layerList");
+        const historyList = document.getElementById("historyList");
+        const historyBadge = document.getElementById("historyBadge");
+        const statusElement = document.getElementById("status");
+        const projectNameInput = document.getElementById("projectNameInput");
+        const projectTitle = document.getElementById("projectTitle");
+        const inspectorBadge = document.getElementById("inspectorBadge");
+        const layerInspector = document.getElementById("layerInspector");
+        const groupInspector = document.getElementById("groupInspector");
+        const objectInspector = document.getElementById("objectInspector");
+        const inspectorLayerId = document.getElementById("inspectorLayerId");
+        const inspectorLayerName = document.getElementById("inspectorLayerName");
+        const inspectorLayerVisible = document.getElementById("inspectorLayerVisible");
+        const inspectorGroupName = document.getElementById("inspectorGroupName");
+        const inspectorGroupLayers = document.getElementById("inspectorGroupLayers");
+        const inspectorLayerOpacity = document.getElementById("inspectorLayerOpacity");
+        const inspectorLayerOpacityValue = document.getElementById("inspectorLayerOpacityValue");
+        const inspectorZOffset = document.getElementById("inspectorZOffset");
+        const inspectorHOffset = document.getElementById("inspectorHOffset");
+        const inspectorObjectId = document.getElementById("inspectorObjectId");
+        const inspectorObjectName = document.getElementById("inspectorObjectName");
+        const inspectorObjectVisible = document.getElementById("inspectorObjectVisible");
+        const inspectorObjectX = document.getElementById("inspectorObjectX");
+        const inspectorObjectY = document.getElementById("inspectorObjectY");
+        const fileInput = document.getElementById("fileInput");
+        const brushSpacingInput = document.getElementById("brushSpacingInput");
+        const gridToggle = document.getElementById("gridToggle");
+        const footprintToggle = document.getElementById("footprintToggle");
+        const tileFlipInput = document.getElementById("tileFlipInput");
+        const metatileBadge = document.getElementById("metatileBadge");
+        const metatileEditor = document.getElementById("metatileEditor");
+        const metatileList = document.getElementById("metatileList");
+        const metatileNameInput = document.getElementById("metatileNameInput");
+        const metatileColumnsInput = document.getElementById("metatileColumnsInput");
+        const metatileRowsInput = document.getElementById("metatileRowsInput");
+        const metatileModeButton = document.getElementById("metatileModeButton");
+        const tilesetImportButton = document.getElementById("tilesetImportButton");
+        const tilesetFileInput = document.getElementById("tilesetFileInput");
+        const tileMap = document.getElementById("tileMap");
+        const tileMapBadge = document.getElementById("tileMapBadge");
+        const tileMapColumnsInput = document.getElementById("tileMapColumnsInput");
+        const tileMapRowsInput = document.getElementById("tileMapRowsInput");
+        const backgroundMapCanvas = document.getElementById("backgroundMapCanvas");
+        const backgroundMapContext = backgroundMapCanvas.getContext("2d");
+        const tilemapIndexToggle = document.getElementById("tilemapIndexToggle");
+        const tilemapIndexOpacity = document.getElementById("tilemapIndexOpacity");
+        const tilemapIndexOpacityValue = document.getElementById("tilemapIndexOpacityValue");
+
+        const sheet = new Image();
+        sheet.src = SHEET_URL;
+
+        let nextLayerId = 0;
+        let nextObjectId = 0;
+        const scene = {
+            name: "untitled",
+            orientation: "isometric",
+            width: CELLS_X,
+            height: CELLS_Y,
+            gridWidth: CELL_W,
+            gridHeight: CELL_H,
+            collisionGridWidth: 8,
+            collisionGridHeight: 8,
+            tileWidth: TILE_SIZE,
+            tileHeight: TILE_SIZE,
+            version: 1,
+            bonkaVersion: "0.3.1",
+            nextLayerId: 1,
+            nextObjectId: 1,
+            nextTilesetId: 1,
+            nextMetatileId: 1,
+        };
+        let layers = [createLayer(0)];
+        let tilesets = [];
+        let metatiles = [];
+        const tilesetImages = new Map();
+        let selectedTilesetId = null;
+        let selectedSubtileId = null;
+        let selectedMetatileId = null;
+        let metatileEditMode = "tiles";
+        let inspectorSelection = { type: "layer", id: layers[0].id };
+        let activeLevel = 0;
+        let activeTool = "tile";
+        let hoverCell = null;
+        let history = [];
+        let historyIndex = -1;
+        let painting = false;
+        let strokeHistoryLabel = "Edit map";
+        let panning = false;
+        let strokeChanged = false;
+        let strokeAnchorCell = null;
+        let lastStampedCell = null;
+        let panStart = null;
+        let viewScale = 1;
+        let viewX = 0;
+        let viewY = 0;
+        let draggedOutlinerNode = null;
+        let tileMapColumns = 8;
+        let tileMapRows = 8;
+        let selectedTileMapCell = null;
+        let selectedTileMapCellPreview = null;
+        let hoverTileMapPixel = null;
+        let activeCanvasTab = "regular";
+        let selectedBackgroundTileCell = null;
+        let tileMapSources = [];
+        let tilesetTiles = [];
+        const hiddenTilesetCells = new Map();
+        let paintingTilemap = false;
+        let tilemapStrokeChanged = false;
+        let tilemapStrokeTileIndex = 0;
+        let tilemapStrokeLabel = "Edit tilemap";
+        const BACKGROUND_MAP_TILES = 32;
+        const backgroundMapCells = new Uint16Array(BACKGROUND_MAP_TILES * BACKGROUND_MAP_TILES);
+
+        function createLayer(level, zOffset = level * CELL_H, order = level) {
+            const id = nextLayerId++;
+            scene.nextLayerId = nextLayerId;
+            return {
+                id,
+                name: `Layer ${level}`,
+                type: "tile",
+                level,
+                zOffset,
+                hOffset: 0,
+                opacity: 1,
+                order,
+                placements: [],
+                objects: [],
+                visible: true,
+                dirty: false,
+            };
+        }
+
+        function createGroup(name = "Group") {
+            return { name, layers: [] };
+        }
+
+        function createTileset(name, image, imageWidth, imageHeight) {
+            const id = scene.nextTilesetId++;
+            return {
+                id,
+                name,
+                imageName: `${name || "tileset"}.png`,
+                image,
+                imageWidth,
+                imageHeight,
+                columns: Math.floor(imageWidth / 8),
+                tileCount: Math.floor(imageWidth / 8) * Math.floor(imageHeight / 8),
+                tileWidth: 8,
+                tileHeight: 8,
+                margin: 0,
+                spacing: 0,
+            };
+        }
+
+        function createMetatile(tilesetId, columns = 4, rows = 4, name = "") {
+            const id = scene.nextMetatileId++;
+            columns = Math.max(1, Math.min(32, Math.round(columns) || 1));
+            rows = Math.max(1, Math.min(32, Math.round(rows) || 1));
+            return {
+                id,
+                tilesetId,
+                name: name || `Metatile ${id}`,
+                type: "metatile",
+                columns,
+                rows,
+                visible: true,
+                opacity: 1,
+                data: new Array(columns * rows).fill(null),
+                collisionMap: new Array(columns * rows).fill(0),
+            };
+        }
+
+        function tilesetFor(id) {
+            return tilesets.find(tileset => tileset.id === id);
+        }
+
+        function metatileFor(id) {
+            return metatiles.find(metatile => metatile.id === id);
+        }
+
+        function imageForTileset(tileset) {
+            return tilesetImages.get(tileset.id) || null;
+        }
+
+        function loadTilesetImage(tileset) {
+            const image = new Image();
+            image.onload = () => {
+                tilesetImages.set(tileset.id, image);
+                buildPalette();
+                renderMetatileEditor();
+                renderMetatileList();
+                render();
+            };
+            image.src = tileset.image;
+            return image;
+        }
+
+        function subtileIsEmpty(tileset, subtileId) {
+            const image = imageForTileset(tileset);
+            if (!image) return false;
+            const sourceX = (subtileId % tileset.columns) * 8;
+            const sourceY = Math.floor(subtileId / tileset.columns) * 8;
+            const probe = document.createElement("canvas");
+            probe.width = 8;
+            probe.height = 8;
+            const probeContext = probe.getContext("2d", { willReadFrequently: true });
+            probeContext.drawImage(image, sourceX, sourceY, 8, 8, 0, 0, 8, 8);
+            const pixels = probeContext.getImageData(0, 0, 8, 8).data;
+            for (let index = 3; index < pixels.length; index += 4) {
+                if (pixels[index]) return false;
+            }
+            return true;
+        }
+
+        function drawMetatile(target, metatile, x, y, scale = 1, flipX = false) {
+            const tileset = tilesetFor(metatile.tilesetId);
+            const image = tileset && imageForTileset(tileset);
+            if (!tileset || !image) return;
+            const width = metatile.columns * 8;
+            target.save();
+            if (flipX) {
+                target.translate(x + width * scale, y);
+                target.scale(-1, 1);
+                x = 0;
+            }
+            metatile.data.forEach((subtileId, index) => {
+                if (!Number.isInteger(subtileId)) return;
+                const sourceX = (subtileId % tileset.columns) * 8;
+                const sourceY = Math.floor(subtileId / tileset.columns) * 8;
+                const destinationX = x + (index % metatile.columns) * 8 * scale;
+                const destinationY = y + Math.floor(index / metatile.columns) * 8 * scale;
+                target.drawImage(image, sourceX, sourceY, 8, 8, destinationX, destinationY, 8 * scale, 8 * scale);
+            });
+            target.restore();
+        }
+
+        function createObject(kind, x, y, name = "") {
+            const id = nextObjectId++;
+            scene.nextObjectId = nextObjectId;
+            const labels = { object: "Object", player: "Player", enemy: "Enemy" };
+            return {
+                id,
+                kind,
+                name: name || `${labels[kind]} ${id}`,
+                visible: true,
+                x,
+                y,
+            };
+        }
+
+        function isGroup(node) {
+            return Array.isArray(node.layers) && !Array.isArray(node.placements);
+        }
+
+        function allLayers(nodes = layers) {
+            return nodes.flatMap(node => isGroup(node) ? allLayers(node.layers) : node);
+        }
+
+        function normalizeLayerMetadata(layer) {
+            if (!Number.isInteger(layer.id) || layer.id < 0) layer.id = nextLayerId++;
+            else nextLayerId = Math.max(nextLayerId, layer.id + 1);
+            if (typeof layer.name !== "string" || !layer.name.trim()) layer.name = `Layer ${layer.level}`;
+            if (layer.type !== "object") layer.type = "tile";
+            if (!Number.isFinite(layer.opacity)) layer.opacity = 1;
+            layer.opacity = Math.max(0, Math.min(1, layer.opacity));
+            if (!Number.isInteger(layer.hOffset)) layer.hOffset = 0;
+            if (!Array.isArray(layer.objects)) layer.objects = [];
+            if (layer.player) layer.objects.push(createObject("player", layer.player.x, layer.player.y, "Player"));
+            (layer.enemies || []).forEach(enemy => layer.objects.push(createObject("enemy", enemy.x, enemy.y)));
+            delete layer.player;
+            delete layer.enemies;
+            layer.objects.forEach(object => {
+                if (!Number.isInteger(object.id) || object.id < 0) object.id = nextObjectId++;
+                else nextObjectId = Math.max(nextObjectId, object.id + 1);
+                if (typeof object.name !== "string" || !object.name.trim()) {
+                    const labels = { object: "Object", player: "Player", enemy: "Enemy" };
+                    object.name = `${labels[object.kind] || "Object"} ${object.id}`;
+                }
+                object.visible = object.visible !== false;
+                delete object.layerId;
+            });
+            return layer;
+        }
+
+        function normalizeNode(node) {
+            if (isGroup(node)) {
+                return {
+                    name: typeof node.name === "string" && node.name.trim() ? node.name : "Group",
+                    layers: node.layers.map(normalizeNode),
+                };
+            }
+            return normalizeLayerMetadata(node);
+        }
+
+        function layerForId(id) {
+            return allLayers().find(layer => layer.id === id);
+        }
+
+        function allObjects() {
+            return allLayers().flatMap(layer => layer.objects);
+        }
+
+        function objectFor(id) {
+            return allObjects().find(object => object.id === id);
+        }
+
+        function layerForObject(id) {
+            return allLayers().find(layer => layer.objects.some(object => object.id === id));
+        }
+
+        function commitLayerChange(layer, historyLabel) {
+            layer.dirty = true;
+            pushHistory(historyLabel);
+            updateDirtyBadge();
+            renderLayerList();
+            updateInspector();
+            render();
+        }
+
+        function commitObjectChange(object, historyLabel) {
+            const layer = layerForObject(object.id);
+            if (layer) layer.dirty = true;
+            pushHistory(historyLabel);
+            updateDirtyBadge();
+            renderLayerList();
+            updateInspector();
+            render();
+        }
+
+        function layerFor(level) {
+            return allLayers().find(layer => layer.level === level);
+        }
+
+        function activeLayer() {
+            return layerFor(activeLevel);
+        }
+
+        function orderedLayers() {
+            return allLayers().sort((a, b) => b.order - a.order || b.level - a.level);
+        }
+
+        function setStatus(message, isError = false) {
+            statusElement.textContent = message;
+            statusElement.classList.toggle("error", isError);
+        }
+
+        function updateProjectTitle() {
+            const name = projectNameInput.value.trim() || "untitled";
+            scene.name = name;
+            projectTitle.textContent = name;
+            document.title = `Bonka • ${name}`;
+            document.getElementById("downloadRegularBackgroundButton").download = projectFileName("", "bmp");
+            document.getElementById("downloadBackgroundTilesButton").download = projectFileName("_tileset", "bmp");
+            refreshPillEditors();
+        }
+
+        function pillLabel(control) {
+            if (control instanceof HTMLSelectElement) return control.selectedOptions[0]?.textContent || "Choose";
+            return control.value || control.placeholder || "Set value";
+        }
+
+        function refreshPillEditors() {
+            document.querySelectorAll(".pill-editor").forEach(wrapper => {
+                const control = wrapper.querySelector(".pill-edit-control");
+                const button = wrapper.querySelector(".pill-edit-button");
+                if (control && button) button.textContent = pillLabel(control);
+            });
+        }
+
+        function initializePillEditors() {
+            const selector = "input.number-input, select.number-input";
+            document.querySelectorAll(selector).forEach(control => {
+                const wrapper = document.createElement("span");
+                wrapper.className = "pill-editor";
+                const button = document.createElement("button");
+                button.type = "button";
+                button.className = "pill-edit-button";
+                button.title = "Click to edit";
+                const parent = control.parentNode;
+                parent.insertBefore(wrapper, control);
+                wrapper.append(button, control);
+                control.classList.add("pill-edit-control");
+
+                const finish = () => {
+                    wrapper.classList.remove("editing");
+                    button.textContent = pillLabel(control);
+                };
+                button.addEventListener("click", () => {
+                    wrapper.classList.add("editing");
+                    control.focus({ preventScroll: true });
+                    if (control instanceof HTMLSelectElement) {
+                        if (typeof control.showPicker === "function") control.showPicker();
+                        else control.click();
+                    }
+                });
+                control.addEventListener("blur", finish);
+                control.addEventListener("change", finish);
+                control.addEventListener("input", () => {
+                    button.textContent = pillLabel(control);
+                });
+                control.addEventListener("keydown", event => {
+                    if (event.key === "Enter" || event.key === "Escape") control.blur();
+                });
+                button.textContent = pillLabel(control);
+            });
+        }
+
+        function projectFileName(suffix, extension) {
+            const stem = projectNameInput.value.trim()
+                .normalize("NFKD")
+                .replace(/[\u0300-\u036f]/g, "")
+                .toLowerCase()
+                .replace(/[^a-z0-9]+/g, "_")
+                .replace(/^_+|_+$/g, "") || "untitled";
+            return `${stem}${suffix}.${extension}`;
+        }
+
+        function sceneDocument() {
+            const player = allObjects().find(object => object.kind === "player");
+            const enemies = allObjects().filter(object => object.kind === "enemy");
+            const serializeNode = node => {
+                if (isGroup(node)) return { name: node.name, layers: node.layers.map(serializeNode) };
+                return {
+                    id: node.id,
+                    name: node.name,
+                    type: node.type === "tile" ? "metatileLayer" : "objectLayer",
+                    level: node.level,
+                    visible: node.visible,
+                    opacity: node.opacity,
+                    zOffset: node.zOffset,
+                    hOffset: node.hOffset,
+                    order: node.order,
+                    metatiles: node.placements.map(item => ({ metatileId: item.metatileId, x: item.x, y: item.y, flip: { x: Boolean(item.flipX), y: false } })),
+                    objects: node.objects.filter(object => object.kind === "object"),
+                };
+            };
+            return {
+                name: scene.name,
+                orientation: scene.orientation,
+                width: scene.width,
+                height: scene.height,
+                gridWidth: scene.gridWidth,
+                gridHeight: scene.gridHeight,
+                collisionGridWidth: scene.collisionGridWidth,
+                collisionGridHeight: scene.collisionGridHeight,
+                tileWidth: scene.tileWidth,
+                tileHeight: scene.tileHeight,
+                tilesets,
+                metatiles,
+                layers: layers.map(serializeNode),
+                player: player ? { x: player.x, y: player.y } : null,
+                enemies: enemies.map(enemy => ({ x: enemy.x, y: enemy.y })),
+                nextLayerId,
+                nextObjectId,
+                nextTilesetId: scene.nextTilesetId,
+                nextMetatileId: scene.nextMetatileId,
+                version: scene.version,
+                bonkaVersion: scene.bonkaVersion,
+            };
+        }
+
+        async function loadSceneDocument(document) {
+            if (!document || document.version !== 1 || !Array.isArray(document.tilesets) || !Array.isArray(document.metatiles) || !Array.isArray(document.layers)) {
+                throw new Error("Invalid Bonka scene JSON.");
+            }
+            Object.assign(scene, {
+                name: String(document.name || "untitled"),
+                orientation: document.orientation === "isometric" ? "isometric" : "isometric",
+                width: Number(document.width) || CELLS_X,
+                height: Number(document.height) || CELLS_Y,
+                gridWidth: Number(document.gridWidth) || CELL_W,
+                gridHeight: Number(document.gridHeight) || CELL_H,
+                collisionGridWidth: Number(document.collisionGridWidth) || 8,
+                collisionGridHeight: Number(document.collisionGridHeight) || 8,
+                tileWidth: Number(document.tileWidth) || TILE_SIZE,
+                tileHeight: Number(document.tileHeight) || TILE_SIZE,
+                nextTilesetId: Number(document.nextTilesetId) || 1,
+                nextMetatileId: Number(document.nextMetatileId) || 1,
+            });
+            tilesets = document.tilesets.map(tileset => ({ ...tileset }));
+            metatiles = document.metatiles.map(metatile => {
+                const columns = Math.max(1, Math.min(32, Math.round(Number(metatile.columns) || 4)));
+                const rows = Math.max(1, Math.min(32, Math.round(Number(metatile.rows) || 4)));
+                const cells = columns * rows;
+                return {
+                    ...metatile,
+                    columns,
+                    rows,
+                    data: Array.isArray(metatile.data) ? metatile.data.slice(0, cells).concat(new Array(cells).fill(null)).slice(0, cells) : new Array(cells).fill(null),
+                    collisionMap: Array.isArray(metatile.collisionMap) ? metatile.collisionMap.slice(0, cells).concat(new Array(cells).fill(0)).slice(0, cells) : new Array(cells).fill(0),
+                };
+            });
+            tilesetImages.clear();
+            await Promise.all(tilesets.map(tileset => new Promise((resolve, reject) => {
+                const image = new Image();
+                image.onload = () => { tilesetImages.set(tileset.id, image); resolve(); };
+                image.onerror = () => reject(new Error(`Could not load tileset ${tileset.name}.`));
+                image.src = tileset.image;
+            })));
+            const parseNode = node => {
+                if (Array.isArray(node.layers) && !node.id) return { name: String(node.name || "Group"), layers: node.layers.map(parseNode) };
+                const layer = createLayer(Number.isInteger(node.level) ? node.level : nextLayerId, Number(node.zOffset) || 0, Number(node.order) || 0);
+                if (Number.isInteger(node.id) && node.id >= 0) layer.id = node.id;
+                layer.name = String(node.name || layer.name);
+                layer.type = node.type === "objectLayer" ? "object" : "tile";
+                layer.visible = node.visible !== false;
+                layer.opacity = Number.isFinite(node.opacity) ? node.opacity : 1;
+                layer.hOffset = Number(node.hOffset) || 0;
+                layer.placements = (node.metatiles || []).map(item => ({ metatileId: item.metatileId, x: item.x, y: item.y, flipX: Boolean(item.flip?.x) }));
+                layer.objects = Array.isArray(node.objects) ? node.objects.map(object => ({ ...object, kind: "object" })) : [];
+                return normalizeLayerMetadata(layer);
+            };
+            layers = document.layers.map(parseNode);
+            nextLayerId = Number(document.nextLayerId) || nextLayerId;
+            nextObjectId = Number(document.nextObjectId) || nextObjectId;
+            let objectLayer = allLayers().find(layer => layer.type === "object");
+            if (!objectLayer) {
+                objectLayer = createLayer(Math.max(...allLayers().map(layer => layer.level), -1) + 1);
+                objectLayer.type = "object";
+                objectLayer.name = "Objects";
+                layers.unshift(objectLayer);
+            }
+            if (document.player) objectLayer.objects.push(createObject("player", document.player.x, document.player.y, "Player"));
+            (document.enemies || []).forEach(enemy => objectLayer.objects.push(createObject("enemy", enemy.x, enemy.y)));
+            projectNameInput.value = scene.name;
+            selectedTilesetId = tilesets[0]?.id ?? null;
+            selectedSubtileId = null;
+            selectedMetatileId = metatiles[0]?.id ?? null;
+            activeLevel = allLayers()[0].level;
+            inspectorSelection = { type: "layer", id: activeLayer().id };
+            updateProjectTitle();
+            buildPalette();
+            renderMetatileEditor();
+            renderMetatileList();
+            renderLayerList();
+            updateStats();
+            render();
+        }
+
+        function updateInspector() {
+            const object = inspectorSelection.type === "object" ? objectFor(inspectorSelection.id) : null;
+            if (object) {
+                inspectorBadge.textContent = "Object";
+                layerInspector.hidden = true;
+                groupInspector.hidden = true;
+                objectInspector.hidden = false;
+                inspectorObjectId.textContent = String(object.id);
+                inspectorObjectName.value = object.name;
+                inspectorObjectVisible.checked = object.visible;
+                inspectorObjectX.value = String(object.x);
+                inspectorObjectY.value = String(object.y);
+                refreshPillEditors();
+                return;
+            }
+
+            const group = inspectorSelection.type === "group" ? inspectorSelection.group : null;
+            if (group && isGroup(group)) {
+                inspectorBadge.textContent = "Group";
+                layerInspector.hidden = true;
+                groupInspector.hidden = false;
+                objectInspector.hidden = true;
+                inspectorGroupName.value = group.name;
+                inspectorGroupLayers.textContent = String(allLayers(group.layers).length);
+                refreshPillEditors();
+                return;
+            }
+
+            const layer = layerForId(inspectorSelection.id) || activeLayer();
+            inspectorSelection = { type: "layer", id: layer.id };
+            inspectorBadge.textContent = layer.type === "tile" ? "Tile Layer" : "Object Layer";
+            layerInspector.hidden = false;
+            groupInspector.hidden = true;
+            objectInspector.hidden = true;
+            inspectorLayerId.textContent = String(layer.id);
+            inspectorLayerName.value = layer.name;
+            inspectorLayerVisible.checked = layer.visible;
+            inspectorLayerOpacity.value = String(layer.opacity);
+            inspectorLayerOpacityValue.textContent = `${Math.round(layer.opacity * 100)}%`;
+            inspectorZOffset.value = String(layer.zOffset);
+            inspectorHOffset.value = String(layer.hOffset);
+            refreshPillEditors();
+        }
+
+        function updateDirtyBadge() {
+            const dirty = allLayers().some(layer => layer.dirty);
+            const badge = document.getElementById("dirtyBadge");
+            badge.textContent = dirty ? "edited" : "saved";
+            badge.style.color = dirty ? "var(--gold)" : "var(--cyan)";
+        }
+
+        function snapshot() {
+            return JSON.stringify({ layers, activeLevel, metatiles, scene });
+        }
+
+        function restoreSnapshot(entry) {
+            const state = JSON.parse(entry.state);
+            layers = state.layers.map(normalizeNode);
+            activeLevel = state.activeLevel;
+            metatiles = state.metatiles || metatiles;
+            Object.assign(scene, state.scene || {});
+            inspectorSelection = { type: "layer", id: activeLayer().id };
+            renderLayerList();
+            updateDirtyBadge();
+            updateStats();
+            render();
+            renderMetatileEditor();
+            renderMetatileList();
+        }
+
+        function renderHistory() {
+            historyList.replaceChildren();
+            [...history].reverse().forEach((entry, reverseIndex) => {
+                const index = history.length - 1 - reverseIndex;
+                const button = document.createElement("button");
+                button.type = "button";
+                button.className = "history-entry";
+                button.classList.toggle("active", index === historyIndex);
+                button.classList.toggle("future", index > historyIndex);
+                button.title = entry.label;
+                const label = document.createElement("span");
+                label.textContent = entry.label;
+                button.append(label);
+                button.addEventListener("click", () => goToHistory(index));
+                historyList.append(button);
+            });
+            historyBadge.textContent = history.length ? `${historyIndex + 1} / ${history.length}` : "0 / 0";
+        }
+
+        function updateHistoryControls() {
+            document.getElementById("undoButton").disabled = historyIndex <= 0;
+            document.getElementById("redoButton").disabled = historyIndex >= history.length - 1;
+            renderHistory();
+        }
+
+        function pushHistory(label = "Edit map") {
+            history = history.slice(0, historyIndex + 1);
+            history.push({ label, state: snapshot() });
+            historyIndex = history.length - 1;
+            updateHistoryControls();
+        }
+
+        function mutate(callback, historyLabel = "Edit map") {
+            callback();
+            activeLayer().dirty = true;
+            pushHistory(historyLabel);
+            updateDirtyBadge();
+            renderLayerList();
+            updateStats();
+            render();
+        }
+
+        function goToHistory(index) {
+            if (index < 0 || index >= history.length || index === historyIndex) return;
+            historyIndex = index;
+            restoreSnapshot(history[historyIndex]);
+            updateHistoryControls();
+            setStatus(`Restored: ${history[historyIndex].label}.`);
+        }
+
+        function undo() {
+            if (historyIndex <= 0) return;
+            const label = history[historyIndex].label;
+            historyIndex -= 1;
+            restoreSnapshot(history[historyIndex]);
+            updateHistoryControls();
+            setStatus(`Undid: ${label}.`);
+        }
+
+        function redo() {
+            if (historyIndex >= history.length - 1) return;
+            historyIndex += 1;
+            restoreSnapshot(history[historyIndex]);
+            updateHistoryControls();
+            setStatus(`Redid: ${history[historyIndex].label}.`);
+        }
+
+        function updateStats() {
+            document.getElementById("tileCount").textContent = allLayers().reduce(
+                (total, layer) => total + layer.placements.length, 0);
+            document.getElementById("enemyCount").textContent = allObjects().filter(object => object.kind === "enemy").length;
+            updateInspector();
+        }
+
+        function selectLayer(level) {
+            activeLevel = level;
+            inspectorSelection = { type: "layer", id: activeLayer().id };
+            renderLayerList();
+            updateInspector();
+            render();
+            setStatus(`${activeLayer().name} is active. Edits affect only this layer.`);
+        }
+
+        function selectGroup(group) {
+            inspectorSelection = { type: "group", group };
+            renderLayerList();
+            updateInspector();
+            setStatus(`${group.name} is selected. New layers are added to this group.`);
+        }
+
+        function selectObject(object) {
+            const layer = layerForObject(object.id);
+            if (layer) activeLevel = layer.level;
+            inspectorSelection = { type: "object", id: object.id };
+            renderLayerList();
+            updateInspector();
+            render();
+            setStatus(`${object.name} selected.`);
+        }
+
+        function layerLocation(layer, nodes = layers) {
+            for (let index = 0; index < nodes.length; ++index) {
+                const node = nodes[index];
+                if (node === layer) return { container: nodes, index };
+                if (isGroup(node)) {
+                    const location = layerLocation(layer, node.layers);
+                    if (location) return location;
+                }
+            }
+            return null;
+        }
+
+        function syncLayerOrder() {
+            const ordered = allLayers();
+            ordered.forEach((layer, index) => {
+                layer.order = ordered.length - index;
+                layer.dirty = true;
+            });
+        }
+
+        function moveLayer(layer, targetContainer, targetIndex, label) {
+            const location = layerLocation(layer);
+            if (!location) return;
+            location.container.splice(location.index, 1);
+            if (location.container === targetContainer && location.index < targetIndex) targetIndex -= 1;
+            targetContainer.splice(Math.max(0, Math.min(targetIndex, targetContainer.length)), 0, layer);
+            syncLayerOrder();
+            pushHistory(label);
+            updateDirtyBadge();
+            renderLayerList();
+            render();
+            setStatus(label + ".");
+        }
+
+        function finishOutlinerDrag() {
+            draggedOutlinerNode = null;
+            layerList.querySelectorAll(".layer-row").forEach(row => row.classList.remove("dragging", "drag-over"));
+        }
+
+        function renderLayerList() {
+            layerList.replaceChildren();
+            layerList.ondragover = event => {
+                if (!draggedOutlinerNode || event.target !== layerList) return;
+                event.preventDefault();
+                event.dataTransfer.dropEffect = "move";
+            };
+            layerList.ondrop = event => {
+                if (!draggedOutlinerNode || event.target !== layerList) return;
+                event.preventDefault();
+                const layer = draggedOutlinerNode;
+                moveLayer(layer, layers, 0, `Move ${layer.name} to the root`);
+                finishOutlinerDrag();
+            };
+            const tileIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-grid-3x3" viewBox="0 0 16 16"><path d="M0 1.5A1.5 1.5 0 0 1 1.5 0h13A1.5 1.5 0 0 1 16 1.5v13a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 0 14.5zM1.5 1a.5.5 0 0 0-.5.5V5h4V1zM5 6H1v4h4zm1 4h4V6H6zm-1 1H1v3.5a.5.5 0 0 0 .5.5H5zm1 0v4h4v-4zm5 0v4h3.5a.5.5 0 0 0 .5-.5V11zm0-1h4V6h-4zm0-5h4V1.5a.5.5 0 0 0-.5-.5H11zm-1 0V1H6v4z"/></svg>';
+            const objectIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-boxes" viewBox="0 0 16 16"><path d="M7.752.066a.5.5 0 0 1 .496 0l3.75 2.143a.5.5 0 0 1 .252.434v3.995l3.498 2A.5.5 0 0 1 16 9.07v4.286a.5.5 0 0 1-.252.434l-3.75 2.143a.5.5 0 0 1-.496 0l-3.502-2-3.502 2.001a.5.5 0 0 1-.496 0l-3.75-2.143A.5.5 0 0 1 0 13.357V9.071a.5.5 0 0 1 .252-.434L3.75 6.638V2.643a.5.5 0 0 1 .252-.434zM4.25 7.504 1.508 9.071l2.742 1.567 2.742-1.567zM7.5 9.933l-2.75 1.571v3.134l2.75-1.571zm1 3.134 2.75 1.571v-3.134L8.5 9.933zm.508-3.996 2.742 1.567 2.742-1.567-2.742-1.567zm2.242-2.433V3.504L8.5 5.076V8.21zM7.5 8.21V5.076L4.75 3.504v3.134zM5.258 2.643 8 4.21l2.742-1.567L8 1.076zM15 9.933l-2.75 1.571v3.134L15 13.067zM3.75 14.638v-3.134L1 9.933v3.134z"/></svg>';
+            const groupIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-folder2" viewBox="0 0 16 16"><path d="M1 3.5A1.5 1.5 0 0 1 2.5 2h2.764c.958 0 1.76.56 2.311 1.184C7.985 3.648 8.48 4 9 4h4.5A1.5 1.5 0 0 1 15 5.5v7a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 1 12.5zM2.5 3a.5.5 0 0 0-.5.5V6h12v-.5a.5.5 0 0 0-.5-.5H9c-.964 0-1.71-.629-2.174-1.154C6.374 3.334 5.82 3 5.264 3zM14 7H2v5.5a.5.5 0 0 0 .5.5h11a.5.5 0 0 0 .5-.5z"/></svg>';
+
+            function renderNode(node, depth = 0) {
+                if (isGroup(node)) {
+                    const row = document.createElement("div");
+                    row.className = "layer-row group-row";
+                    row.style.marginInlineStart = `${depth * 14}px`;
+                    row.style.width = `calc(100% - ${depth * 14}px)`;
+                    row.classList.toggle("active", inspectorSelection.type === "group" && inspectorSelection.group === node);
+                    row.addEventListener("click", () => selectGroup(node));
+                    row.addEventListener("dragover", event => {
+                        if (!draggedOutlinerNode) return;
+                        event.preventDefault();
+                        event.stopPropagation();
+                        event.dataTransfer.dropEffect = "move";
+                        row.classList.add("drag-over");
+                    });
+                    row.addEventListener("dragleave", () => row.classList.remove("drag-over"));
+                    row.addEventListener("drop", event => {
+                        if (!draggedOutlinerNode) return;
+                        event.preventDefault();
+                        event.stopPropagation();
+                        const layer = draggedOutlinerNode;
+                        moveLayer(layer, node.layers, 0, `Move ${layer.name} into ${node.name}`);
+                        finishOutlinerDrag();
+                    });
+                    const icon = document.createElement("span");
+                    icon.className = "layer-type-icon";
+                    icon.innerHTML = groupIcon;
+                    const name = document.createElement("div");
+                    name.className = "layer-name";
+                    const title = document.createElement("strong");
+                    title.textContent = node.name;
+                    const details = document.createElement("small");
+                    details.textContent = `${allLayers(node.layers).length} Layers`;
+                    name.append(title, details);
+                    row.append(icon, name);
+                    layerList.append(row);
+                    node.layers.forEach(child => renderNode(child, depth + 1));
+                    return;
+                }
+
+                const layer = node;
+                const row = document.createElement("div");
+                row.className = "layer-row";
+                row.style.marginInlineStart = `${depth * 14}px`;
+                row.style.width = `calc(100% - ${depth * 14}px)`;
+                row.draggable = true;
+                row.classList.toggle("active", layer.level === activeLevel);
+                row.addEventListener("click", () => selectLayer(layer.level));
+                row.addEventListener("dragstart", event => {
+                    draggedOutlinerNode = layer;
+                    event.dataTransfer.effectAllowed = "move";
+                    event.dataTransfer.setData("text/plain", String(layer.id));
+                    row.classList.add("dragging");
+                });
+                row.addEventListener("dragend", finishOutlinerDrag);
+                row.addEventListener("dragover", event => {
+                    if (!draggedOutlinerNode || draggedOutlinerNode === layer) return;
+                    event.preventDefault();
+                    event.stopPropagation();
+                    event.dataTransfer.dropEffect = "move";
+                    row.classList.add("drag-over");
+                });
+                row.addEventListener("dragleave", () => row.classList.remove("drag-over"));
+                row.addEventListener("drop", event => {
+                    if (!draggedOutlinerNode || draggedOutlinerNode === layer) return;
+                    event.preventDefault();
+                    event.stopPropagation();
+                    const location = layerLocation(layer);
+                    const dragged = draggedOutlinerNode;
+                    moveLayer(dragged, location.container, location.index, `Move ${dragged.name} before ${layer.name}`);
+                    finishOutlinerDrag();
+                });
+
+                const visibility = document.createElement("button");
+                visibility.type = "button";
+                visibility.className = "layer-icon";
+                visibility.title = layer.visible ? "Hide layer" : "Show layer";
+                visibility.setAttribute("aria-label", visibility.title);
+                visibility.innerHTML = layer.visible
+                    ? '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="2.5"/></svg>'
+                    : '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 3 18 18M10.6 6.2A11 11 0 0 1 12 6c6.5 0 10 6 10 6a17 17 0 0 1-2.1 2.8M6.5 6.5C3.5 8.4 2 12 2 12s3.5 6 10 6a10 10 0 0 0 3.5-.6"/></svg>';
+                visibility.addEventListener("click", event => {
+                    event.stopPropagation();
+                    layer.visible = !layer.visible;
+                    layer.dirty = true;
+                    pushHistory(`${layer.visible ? "Show" : "Hide"} layer ${layer.level}`);
+                    updateDirtyBadge();
+                    renderLayerList();
+                    updateInspector();
+                    render();
+                });
+
+                const type = document.createElement("span");
+                type.className = "layer-type-icon";
+                type.title = layer.type === "tile" ? "Tile Layer" : "Object Layer";
+                type.innerHTML = layer.type === "tile" ? tileIcon : objectIcon;
+
+                const name = document.createElement("div");
+                name.className = "layer-name";
+                const nameTitle = document.createElement("strong");
+                nameTitle.textContent = layer.name;
+                if (layer.dirty) {
+                    const dirtyMarker = document.createElement("span");
+                    dirtyMarker.className = "layer-dirty";
+                    dirtyMarker.textContent = " *";
+                    nameTitle.append(dirtyMarker);
+                }
+                const details = document.createElement("small");
+                details.textContent = `ID ${layer.id} · ${layer.type === "tile" ? "Tile" : "Object"} · ${layer.placements.length} Tiles · ${layer.objects.length} Objects`;
+                name.append(nameTitle, details);
+
+                row.append(visibility, type, name);
+                layerList.append(row);
+            }
+
+            layers.forEach(node => renderNode(node));
+        }
+
+        function addLayer(type = "tile") {
+            const existing = allLayers();
+            const level = Math.max(...existing.map(layer => layer.level), -1) + 1;
+            const order = Math.max(...existing.map(layer => layer.order), -1) + 1;
+            const layer = createLayer(level, level * CELL_H, order);
+            layer.type = type;
+            layer.name = `${type === "object" ? "Object Layer" : "Layer"} ${level}`;
+            const group = inspectorSelection.type === "group" && isGroup(inspectorSelection.group) ? inspectorSelection.group : null;
+            if (group) group.layers.unshift(layer);
+            else layers.unshift(layer);
+            activeLevel = level;
+            inspectorSelection = { type: "layer", id: activeLayer().id };
+            activeLayer().dirty = true;
+            pushHistory(`Add layer ${level}`);
+            updateDirtyBadge();
+            updateStats();
+            renderLayerList();
+            render();
+            setStatus(`Layer ${level} created${group ? ` in ${group.name}` : ""}.`);
+        }
+
+        function addGroup() {
+            const group = createGroup(`Group ${layers.filter(isGroup).length + 1}`);
+            layers.unshift(group);
+            inspectorSelection = { type: "group", group };
+            pushHistory(`Add ${group.name}`);
+            updateDirtyBadge();
+            renderLayerList();
+            updateInspector();
+            setStatus(`${group.name} created.`);
+        }
+
+        function removeLayer(nodes, level) {
+            for (let index = 0; index < nodes.length; ++index) {
+                const node = nodes[index];
+                if (!isGroup(node) && node.level === level) {
+                    nodes.splice(index, 1);
+                    return true;
+                }
+                if (isGroup(node) && removeLayer(node.layers, level)) return true;
+            }
+            return false;
+        }
+
+        function deleteActiveLayer() {
+            if (inspectorSelection.type === "group" && isGroup(inspectorSelection.group)) {
+                const group = inspectorSelection.group;
+                if (!confirm(`Delete ${group.name} and its ${allLayers(group.layers).length} layer(s)?`)) return;
+                layers = layers.filter(node => node !== group);
+                const fallback = allLayers()[0];
+                activeLevel = fallback.level;
+                inspectorSelection = { type: "layer", id: fallback.id };
+                pushHistory(`Delete ${group.name}`);
+                updateDirtyBadge();
+                updateStats();
+                renderLayerList();
+                render();
+                return;
+            }
+            if (activeLevel === 0) {
+                setStatus("Layer 0 cannot be deleted.", true);
+                return;
+            }
+            if (!confirm(`Delete ${activeLayer().name} and all of its content?`)) return;
+            const deletedLevel = activeLevel;
+            removeLayer(layers, activeLevel);
+            allLayers().forEach(layer => {
+                if (layer.level > deletedLevel) {
+                    const hadDefaultName = layer.name === `Layer ${layer.level}`;
+                    layer.level -= 1;
+                    if (hadDefaultName) layer.name = `Layer ${layer.level}`;
+                    layer.dirty = true;
+                }
+            });
+            activeLevel = Math.min(deletedLevel, Math.max(...allLayers().map(layer => layer.level)));
+            inspectorSelection = { type: "layer", id: activeLayer().id };
+            activeLayer().dirty = true;
+            pushHistory(`Delete layer ${deletedLevel}`);
+            updateDirtyBadge();
+            updateStats();
+            renderLayerList();
+            render();
+            setStatus(`Layer ${deletedLevel} deleted.`);
+        }
+
+        function selectTool(tool) {
+            activeTool = tool;
+            document.querySelectorAll("[data-tool]").forEach(button => {
+                button.classList.toggle("active", button.dataset.tool === tool);
+            });
+            updateInspector();
+            render();
+        }
+
+        function selectSubtile(tilesetId, subtileId) {
+            selectedTilesetId = tilesetId;
+            selectedSubtileId = subtileId;
+            document.getElementById("selectedBadge").textContent = `Subtile ${subtileId}`;
+            buildPalette(tileSearch.value);
+        }
+
+        function selectMetatile(metatileId) {
+            selectedMetatileId = metatileId;
+            const metatile = metatileFor(metatileId);
+            if (!metatile) return;
+            selectedTilesetId = metatile.tilesetId;
+            metatileNameInput.value = metatile.name;
+            metatileColumnsInput.value = String(metatile.columns);
+            metatileRowsInput.value = String(metatile.rows);
+            document.getElementById("selectedBadge").textContent = metatile.name;
+            renderMetatileEditor();
+            renderMetatileList();
+            selectTool("tile");
+        }
+
+        function buildPalette(filter = "") {
+            palette.replaceChildren();
+            tilesets.forEach(tileset => {
+                const accordion = document.createElement("details");
+                accordion.className = "tileset-accordion";
+                accordion.open = tileset.id === selectedTilesetId || tilesets.length === 1;
+                const summary = document.createElement("summary");
+                const name = document.createElement("input");
+                name.value = tileset.name;
+                name.setAttribute("aria-label", "Tileset name");
+                name.addEventListener("click", event => event.stopPropagation());
+                name.addEventListener("change", () => {
+                    tileset.name = name.value.trim() || `Tileset ${tileset.id}`;
+                    name.value = tileset.name;
+                    pushHistory(`Rename tileset to ${tileset.name}`);
+                });
+                summary.append(name);
+                accordion.append(summary);
+                const scroll = document.createElement("div");
+                scroll.className = "tileset-scroll";
+                const grid = document.createElement("div");
+                grid.className = "tileset-subtiles";
+                grid.style.gridTemplateColumns = `repeat(${tileset.columns}, 48px)`;
+                const image = imageForTileset(tileset);
+                if (!image) {
+                    const loading = document.createElement("p");
+                    loading.className = "hint";
+                    loading.textContent = "Loading tileset…";
+                    grid.append(loading);
+                } else {
+                    for (let subtileId = 0; subtileId < tileset.tileCount; ++subtileId) {
+                        const label = String(subtileId);
+                        if (filter && !label.includes(filter.trim())) continue;
+                        const button = document.createElement("button");
+                        button.type = "button";
+                        button.className = "tile-button";
+                        button.title = `${tileset.name} subtile ${subtileId}`;
+                        button.classList.toggle("selected", selectedTilesetId === tileset.id && selectedSubtileId === subtileId);
+                        const preview = document.createElement("canvas");
+                        preview.width = 8;
+                        preview.height = 8;
+                        preview.getContext("2d").drawImage(image, (subtileId % tileset.columns) * 8, Math.floor(subtileId / tileset.columns) * 8, 8, 8, 0, 0, 8, 8);
+                        const text = document.createElement("span");
+                        text.textContent = label;
+                        button.append(preview, text);
+                        button.addEventListener("click", () => selectSubtile(tileset.id, subtileId));
+                        grid.append(button);
+                    }
+                }
+                scroll.append(grid);
+                accordion.append(scroll);
+                palette.append(accordion);
+            });
+        }
+
+        function renderMetatileEditor() {
+            metatileEditor.replaceChildren();
+            const metatile = metatileFor(selectedMetatileId);
+            if (!metatile) return;
+            metatileEditor.style.gridTemplateColumns = `repeat(${metatile.columns}, 36px)`;
+            const tileset = tilesetFor(metatile.tilesetId);
+            const image = tileset && imageForTileset(tileset);
+            for (let index = 0; index < metatile.columns * metatile.rows; ++index) {
+                const cell = document.createElement("button");
+                cell.type = "button";
+                cell.className = "metatile-cell";
+                cell.classList.toggle("collision", Boolean(metatile.collisionMap[index]));
+                const preview = document.createElement("canvas");
+                preview.width = 8;
+                preview.height = 8;
+                const subtileId = metatile.data[index];
+                if (image && Number.isInteger(subtileId)) {
+                    preview.getContext("2d").drawImage(image, (subtileId % tileset.columns) * 8, Math.floor(subtileId / tileset.columns) * 8, 8, 8, 0, 0, 8, 8);
+                }
+                cell.append(preview);
+                cell.addEventListener("click", () => {
+                    if (metatileEditMode === "collision") {
+                        metatile.collisionMap[index] = metatile.collisionMap[index] ? 0 : 1;
+                    } else if (selectedTilesetId === metatile.tilesetId && Number.isInteger(selectedSubtileId)) {
+                        metatile.data[index] = selectedSubtileId;
+                    } else {
+                        setStatus("Select a subtile from this metatile's tileset first.", true);
+                        return;
+                    }
+                    pushHistory(`Edit ${metatile.name}`);
+                    renderMetatileEditor();
+                    renderMetatileList();
+                    render();
+                });
+                cell.addEventListener("contextmenu", event => {
+                    event.preventDefault();
+                    if (!Number.isInteger(metatile.data[index]) && !metatile.collisionMap[index]) return;
+                    metatile.data[index] = null;
+                    metatile.collisionMap[index] = 0;
+                    pushHistory(`Clear ${metatile.name} cell`);
+                    renderMetatileEditor();
+                    renderMetatileList();
+                    render();
+                });
+                metatileEditor.append(cell);
+            }
+        }
+
+        function renderMetatileList() {
+            metatileList.replaceChildren();
+            metatiles.forEach(metatile => {
+                const button = document.createElement("button");
+                button.type = "button";
+                button.className = "metatile-button";
+                button.title = metatile.name;
+                button.classList.toggle("selected", metatile.id === selectedMetatileId);
+                const preview = document.createElement("canvas");
+                preview.width = 46;
+                preview.height = 46;
+                const scale = Math.min(46 / (metatile.columns * 8), 46 / (metatile.rows * 8));
+                const width = metatile.columns * 8 * scale;
+                const height = metatile.rows * 8 * scale;
+                drawMetatile(preview.getContext("2d"), metatile, (46 - width) / 2, (46 - height) / 2, scale);
+                button.append(preview);
+                button.addEventListener("click", () => selectMetatile(metatile.id));
+                metatileList.append(button);
+            });
+            metatileBadge.textContent = String(metatiles.length);
+        }
+
+        function drawTile(metatileId, cellX, cellY, hOffset = 0, zOffset = 0, alpha = 1, flipX = false) {
+            const metatile = metatileFor(metatileId);
+            if (!metatile) return;
+            context.save();
+            context.globalAlpha = alpha;
+            drawMetatile(context, metatile, cellX * CELL_W + hOffset, cellY * CELL_H - zOffset, 1, flipX);
+            context.restore();
+        }
+
+        function metatilePixels(metatile) {
+            return { width: metatile.columns * 8, height: metatile.rows * 8 };
+        }
+
+        function metatileFits(metatile, cell) {
+            const pixels = metatilePixels(metatile);
+            return cell.x >= 0 && cell.y >= 0 && cell.x * CELL_W + pixels.width <= canvas.width && cell.y * CELL_H + pixels.height <= canvas.height;
+        }
+
+        function placementContainsCell(item, cell) {
+            const metatile = metatileFor(item.metatileId);
+            if (!metatile) return false;
+            const pixels = metatilePixels(metatile);
+            return cell.x >= item.x && cell.x * CELL_W < item.x * CELL_W + pixels.width &&
+                cell.y >= item.y && cell.y * CELL_H < item.y * CELL_H + pixels.height;
+        }
+
+        function renderGrid() {
+            if (!gridToggle.checked) return;
+            context.save();
+            context.lineWidth = 1;
+            for (let x = 0; x <= CELLS_X; x += 1) {
+                context.beginPath();
+                context.strokeStyle = x % 2 === 0 ? "rgba(231,182,80,.20)" : "rgba(112,215,199,.09)";
+                context.moveTo(x * CELL_W + .5, 0);
+                context.lineTo(x * CELL_W + .5, canvas.height);
+                context.stroke();
+            }
+            for (let y = 0; y <= CELLS_Y; y += 1) {
+                context.beginPath();
+                context.strokeStyle = y % 4 === 0 ? "rgba(231,182,80,.20)" : "rgba(112,215,199,.07)";
+                context.moveTo(0, y * CELL_H + .5);
+                context.lineTo(canvas.width, y * CELL_H + .5);
+                context.stroke();
+            }
+            context.restore();
+        }
+
+        function drawMarker(object, layer) {
+            if (!object.visible || !layer.visible) return;
+            const x = object.x * CELL_W + layer.hOffset + CELL_W / 2;
+            const y = object.y * CELL_H - layer.zOffset + CELL_H / 2;
+            context.save();
+            context.globalAlpha = layer.opacity;
+            context.fillStyle = object.kind === "player" ? "#70d7c7" : object.kind === "enemy" ? "#e67661" : "#e7b650";
+            context.strokeStyle = inspectorSelection.type === "object" && inspectorSelection.id === object.id ? "#e7b650" : "#10120f";
+            context.lineWidth = inspectorSelection.type === "object" && inspectorSelection.id === object.id ? 3 : 2;
+            context.beginPath();
+            context.arc(x, y, 7, 0, Math.PI * 2);
+            context.fill();
+            context.stroke();
+            context.fillStyle = "#10120f";
+            context.font = "bold 8px monospace";
+            context.textAlign = "center";
+            context.textBaseline = "middle";
+            context.fillText(object.kind === "player" ? "P" : object.kind === "enemy" ? "E" : "O", x, y + .5);
+            context.restore();
+        }
+
+        function renderMapTiles(sourceLayers = allLayers()) {
+            context.clearRect(0, 0, canvas.width, canvas.height);
+            const ordered = sourceLayers
+                .filter(layer => layer.visible)
+                .flatMap(layer => layer.placements.map(item => ({
+                    ...item,
+                    hOffset: layer.hOffset,
+                    zOffset: layer.zOffset,
+                    opacity: layer.opacity,
+                    order: layer.order,
+                })))
+                .sort((a, b) => a.order - b.order || a.y - b.y || a.x - b.x);
+            ordered.forEach(item => drawTile(item.metatileId, item.x, item.y, item.hOffset, item.zOffset, item.opacity, item.flipX));
+        }
+
+        function updateTileMapSelection() {
+            tileMap.querySelectorAll(".tile-map-cell").forEach((cell, index) => {
+                const selected = activeCanvasTab === "background-map" ? selectedBackgroundTileCell : selectedTileMapCell;
+                cell.classList.toggle("selected", index === selected);
+            });
+            updateInspector();
+        }
+
+        function restoreSelectedTileMapPreview() {
+            if (selectedTileMapCell === null || !selectedTileMapCellPreview) return;
+            const preview = tileMap.querySelectorAll("canvas")[selectedTileMapCell];
+            if (!preview) return;
+            const previewContext = preview.getContext("2d");
+            previewContext.clearRect(0, 0, preview.width, preview.height);
+            previewContext.drawImage(selectedTileMapCellPreview, 0, 0);
+        }
+
+        function clearTileMapCellSelection() {
+            restoreSelectedTileMapPreview();
+            selectedTileMapCell = null;
+            selectedTileMapCellPreview = null;
+            hoverTileMapPixel = null;
+        }
+
+        function renderTileMapHoverPreview() {
+            if (selectedTileMapCell === null || !selectedTileMapCellPreview) return;
+            const preview = tileMap.querySelectorAll("canvas")[selectedTileMapCell];
+            if (!preview) return;
+            const previewContext = preview.getContext("2d");
+            if (!hoverTileMapPixel) {
+                previewContext.clearRect(0, 0, preview.width, preview.height);
+                previewContext.drawImage(selectedTileMapCellPreview, 0, 0);
+                return;
+            }
+            previewContext.clearRect(0, 0, preview.width, preview.height);
+            previewContext.drawImage(canvas, hoverTileMapPixel.x, hoverTileMapPixel.y, 8, 8, 0, 0, 8, 8);
+        }
+
+        function buildTileMap() {
+            const previousColumns = tileMapColumns;
+            const previousRows = tileMapRows;
+            const previousSources = tileMapSources;
+            const previousTiles = tilesetTiles;
+            const nextColumns = Math.max(1, Math.min(32, Math.round(Number(tileMapColumnsInput.value) || 8)));
+            const nextRows = Math.max(1, Math.min(32, Math.round(Number(tileMapRowsInput.value) || 8)));
+
+            for (let y = 0; y < previousRows; y += 1) {
+                for (let x = 0; x < previousColumns; x += 1) {
+                    if (x < nextColumns && y < nextRows) continue;
+                    const index = y * previousColumns + x;
+                    if (previousTiles[index]) {
+                        hiddenTilesetCells.set(`${x},${y}`, {
+                            source: previousSources[index],
+                            tile: previousTiles[index],
+                        });
+                    }
+                }
+            }
+
+            tileMapColumns = nextColumns;
+            tileMapRows = nextRows;
+            tileMapColumnsInput.value = String(tileMapColumns);
+            tileMapRowsInput.value = String(tileMapRows);
+            tileMapBadge.textContent = `${tileMapColumns}×${tileMapRows}`;
+            tileMap.style.gridTemplateColumns = `repeat(${tileMapColumns}, 28px)`;
+            selectedTileMapCell = null;
+            selectedTileMapCellPreview = null;
+            selectedBackgroundTileCell = null;
+            tileMapSources = new Array(tileMapColumns * tileMapRows).fill(null);
+            tilesetTiles = new Array(tileMapColumns * tileMapRows).fill(null);
+            for (let y = 0; y < tileMapRows; y += 1) {
+                for (let x = 0; x < tileMapColumns; x += 1) {
+                    const index = y * tileMapColumns + x;
+                    const previousIndex = y * previousColumns + x;
+                    const hiddenKey = `${x},${y}`;
+                    const cell = x < previousColumns && y < previousRows && previousTiles[previousIndex]
+                        ? { source: previousSources[previousIndex], tile: previousTiles[previousIndex] }
+                        : hiddenTilesetCells.get(hiddenKey);
+                    if (!cell) continue;
+                    tileMapSources[index] = cell.source;
+                    tilesetTiles[index] = cell.tile;
+                    hiddenTilesetCells.delete(hiddenKey);
+                }
+            }
+            tileMap.replaceChildren();
+            for (let index = 0; index < tileMapColumns * tileMapRows; index += 1) {
+                const cell = document.createElement("button");
+                cell.type = "button";
+                cell.className = "tile-map-cell";
+                cell.title = `Tileset cell ${index % tileMapColumns}, ${Math.floor(index / tileMapColumns)}`;
+                cell.setAttribute("aria-label", cell.title);
+                const preview = document.createElement("canvas");
+                preview.width = 8;
+                preview.height = 8;
+                if (tilesetTiles[index]) preview.getContext("2d").drawImage(tilesetTiles[index], 0, 0);
+                cell.append(preview);
+                cell.addEventListener("click", () => {
+                    if (activeCanvasTab === "background-map") {
+                        if (index >= 1023) {
+                            setStatus("Regular backgrounds support at most 1023 populated tileset entries.", true);
+                            return;
+                        }
+                        selectedBackgroundTileCell = index;
+                        selectedTileMapCell = null;
+                        updateTileMapSelection();
+                        renderBackgroundMap();
+                        setStatus(`Tileset tile ${index + 1} selected.`);
+                        return;
+                    }
+                    restoreSelectedTileMapPreview();
+                    selectedTileMapCell = index;
+                    selectedTileMapCellPreview = document.createElement("canvas");
+                    selectedTileMapCellPreview.width = preview.width;
+                    selectedTileMapCellPreview.height = preview.height;
+                    selectedTileMapCellPreview.getContext("2d").drawImage(preview, 0, 0);
+                    hoverTileMapPixel = null;
+                    updateTileMapSelection();
+                    setStatus("Tileset cell selected. Hover over the canvas to preview an 8×8 area, then click to capture it.");
+                });
+                cell.addEventListener("contextmenu", event => {
+                    event.preventDefault();
+                    if (!tileMapSources[index]) return;
+                    if (!confirm(`Delete tileset cell ${index % tileMapColumns}, ${Math.floor(index / tileMapColumns)}?`)) return;
+                    preview.getContext("2d").clearRect(0, 0, preview.width, preview.height);
+                    tileMapSources[index] = null;
+                    tilesetTiles[index] = null;
+                    if (selectedTileMapCell === index) {
+                        selectedTileMapCell = null;
+                        selectedTileMapCellPreview = null;
+                    }
+                    updateTileMapSelection();
+                    setStatus("Tileset cell deleted.");
+                });
+                tileMap.append(cell);
+            }
+            updateTileMapSelection();
+        }
+
+        function captureTileMapCell(event) {
+            const { x: sourceX, y: sourceY } = eventTileMapPixel(event);
+            const targetIndex = selectedTileMapCell;
+            const preview = tileMap.querySelectorAll("canvas")[targetIndex];
+            renderMapTiles([activeLayer()]);
+            const tile = document.createElement("canvas");
+            tile.width = 8;
+            tile.height = 8;
+            tile.getContext("2d").drawImage(canvas, sourceX, sourceY, 8, 8, 0, 0, 8, 8);
+            const previewContext = preview.getContext("2d");
+            previewContext.clearRect(0, 0, preview.width, preview.height);
+            previewContext.drawImage(tile, 0, 0);
+            tileMapSources[targetIndex] = { x: sourceX, y: sourceY };
+            tilesetTiles[targetIndex] = tile;
+            selectedTileMapCell = null;
+            selectedTileMapCellPreview = null;
+            updateTileMapSelection();
+            render();
+            setStatus(`Added the 8×8 tile at pixel (${sourceX}, ${sourceY}) to the tileset.`);
+        }
+
+        function tileMapCellHasData(index) {
+            return Boolean(tilesetTiles[index]);
+        }
+
+        function renderBackgroundMap() {
+            backgroundMapContext.clearRect(0, 0, backgroundMapCanvas.width, backgroundMapCanvas.height);
+            backgroundMapContext.imageSmoothingEnabled = false;
+            backgroundMapCells.forEach((tileIndex, index) => {
+                if (!tileIndex) return;
+                const tile = tilesetTiles[tileIndex - 1];
+                if (!tile) return;
+                const x = index % BACKGROUND_MAP_TILES;
+                const y = Math.floor(index / BACKGROUND_MAP_TILES);
+                backgroundMapContext.drawImage(tile, x * 8, y * 8);
+            });
+
+            backgroundMapContext.save();
+            backgroundMapContext.beginPath();
+            backgroundMapContext.lineWidth = 0.5;
+            backgroundMapContext.strokeStyle = "rgba(112, 215, 199, .22)";
+            for (let index = 0; index <= BACKGROUND_MAP_TILES; index += 1) {
+                const position = index * 8 + 0.25;
+                backgroundMapContext.moveTo(position, 0);
+                backgroundMapContext.lineTo(position, backgroundMapCanvas.height);
+                backgroundMapContext.moveTo(0, position);
+                backgroundMapContext.lineTo(backgroundMapCanvas.width, position);
+            }
+            backgroundMapContext.stroke();
+            backgroundMapContext.restore();
+
+            if (tilemapIndexToggle.checked) {
+                const opacity = Number(tilemapIndexOpacity.value);
+                backgroundMapContext.save();
+                backgroundMapContext.globalAlpha = opacity;
+                backgroundMapContext.textAlign = "center";
+                backgroundMapContext.textBaseline = "middle";
+                backgroundMapContext.fillStyle = "#ffffff";
+                backgroundMapContext.strokeStyle = "rgba(0, 0, 0, .95)";
+                backgroundMapContext.lineWidth = 1.5;
+                backgroundMapCells.forEach((tileIndex, index) => {
+                    if (!tileIndex) return;
+                    const x = (index % BACKGROUND_MAP_TILES) * 8 + 4;
+                    const y = Math.floor(index / BACKGROUND_MAP_TILES) * 8 + 4.5;
+                    const label = String(tileIndex);
+                    backgroundMapContext.font = `bold ${label.length > 3 ? 3 : label.length > 2 ? 4 : 5}px monospace`;
+                    backgroundMapContext.strokeText(label, x, y);
+                    backgroundMapContext.fillText(label, x, y);
+                });
+                backgroundMapContext.restore();
+            }
+            if (selectedBackgroundTileCell !== null) {
+                backgroundMapContext.strokeStyle = "rgba(231,182,80,.85)";
+                backgroundMapContext.strokeRect(0.5, 0.5, backgroundMapCanvas.width - 1, backgroundMapCanvas.height - 1);
+            }
+        }
+
+        function backgroundMapCell(event) {
+            const bounds = backgroundMapCanvas.getBoundingClientRect();
+            return {
+                x: Math.max(0, Math.min(31, Math.floor((event.clientX - bounds.left) * BACKGROUND_MAP_TILES / bounds.width))),
+                y: Math.max(0, Math.min(31, Math.floor((event.clientY - bounds.top) * BACKGROUND_MAP_TILES / bounds.height)))
+            };
+        }
+
+        function paintTilemapCell(event) {
+            const cell = backgroundMapCell(event);
+            const index = cell.y * BACKGROUND_MAP_TILES + cell.x;
+            if (backgroundMapCells[index] === tilemapStrokeTileIndex) return false;
+            backgroundMapCells[index] = tilemapStrokeTileIndex;
+            renderBackgroundMap();
+            return true;
+        }
+
+        function finishTilemapStroke(event) {
+            if (!paintingTilemap) return;
+            paintingTilemap = false;
+            if (tilemapStrokeChanged) {
+                pushHistory(tilemapStrokeLabel);
+                setStatus(`${tilemapStrokeLabel}.`);
+            }
+            tilemapStrokeChanged = false;
+            if (backgroundMapCanvas.hasPointerCapture(event.pointerId)) {
+                backgroundMapCanvas.releasePointerCapture(event.pointerId);
+            }
+        }
+
+        function downloadBlob(blob, fileName) {
+            const url = URL.createObjectURL(blob);
+            const anchor = document.createElement("a");
+            anchor.href = url;
+            anchor.download = fileName;
+            document.body.append(anchor);
+            anchor.click();
+            anchor.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 0);
+        }
+
+        function prepareBmpDownload(event, createDataUrl, fileName) {
+            const link = event.currentTarget;
+            try {
+                link.href = createDataUrl();
+                link.download = fileName;
+                setStatus(`Downloading ${fileName}.`);
+                return true;
+            } catch (error) {
+                event.preventDefault();
+                link.href = "#";
+                setStatus(error.message, true);
+                return false;
+            }
+        }
+
+        function indexedBmpDataUrl(source) {
+            const { width, height } = source;
+            const pixels = source.getContext("2d").getImageData(0, 0, width, height).data;
+            const palette = [[2, 3, 6]];
+            const paletteIndexes = new Map([["2,3,6", 0]]);
+            const indexes = new Uint8Array(width * height);
+            for (let index = 0; index < indexes.length; index += 1) {
+                const offset = index * 4;
+                if (!pixels[offset + 3]) continue;
+                const color = [pixels[offset], pixels[offset + 1], pixels[offset + 2]].map(value => ((value >> 3) << 3) | (value >> 5));
+                const key = color.join(",");
+                let paletteIndex = paletteIndexes.get(key);
+                if (paletteIndex === undefined) {
+                    if (palette.length === 256) throw new Error("BMP requires more than 256 colors.");
+                    paletteIndex = palette.length;
+                    paletteIndexes.set(key, paletteIndex);
+                    palette.push(color);
+                }
+                indexes[index] = paletteIndex;
+            }
+            const rowBytes = width;
+            const rowStride = (rowBytes + 3) & ~3;
+            const offset = 14 + 40 + 1024;
+            const bytes = new Uint8Array(offset + rowStride * height);
+            const view = new DataView(bytes.buffer);
+            view.setUint16(0, 0x4d42, true);
+            view.setUint32(2, bytes.length, true);
+            view.setUint32(10, offset, true);
+            view.setUint32(14, 40, true);
+            view.setInt32(18, width, true);
+            view.setInt32(22, height, true);
+            view.setUint16(26, 1, true);
+            view.setUint16(28, 8, true);
+            view.setUint32(34, rowStride * height, true);
+            view.setUint32(46, palette.length, true);
+            palette.forEach((color, index) => {
+                const paletteOffset = 54 + index * 4;
+                bytes[paletteOffset] = color[2];
+                bytes[paletteOffset + 1] = color[1];
+                bytes[paletteOffset + 2] = color[0];
+            });
+            for (let y = 0; y < height; y += 1) {
+                const rowOffset = offset + (height - 1 - y) * rowStride;
+                for (let x = 0; x < width; x += 1) {
+                    bytes[rowOffset + x] = indexes[y * width + x];
+                }
+            }
+            let binary = "";
+            for (let start = 0; start < bytes.length; start += 32768) {
+                binary += String.fromCharCode(...bytes.subarray(start, start + 32768));
+            }
+            return `data:image/bmp;base64,${btoa(binary)}`;
+        }
+
+        function backgroundTilesCanvas() {
+            const tileCount = tileMapColumns * tileMapRows;
+            const rows = Math.ceil((tileCount + 1) / tileMapColumns);
+            const result = document.createElement("canvas");
+            result.width = tileMapColumns * 8;
+            result.height = rows * 8;
+            const resultContext = result.getContext("2d");
+            tilesetTiles.forEach((tile, index) => {
+                if (!tile) return;
+                const target = index + 1;
+                resultContext.drawImage(tile, (target % tileMapColumns) * 8, Math.floor(target / tileMapColumns) * 8);
+            });
+            return result;
+        }
+
+        function render() {
+            renderMapTiles();
+            renderTileMapHoverPreview();
+
+            if (footprintToggle.checked) {
+                const layer = activeLayer();
+                context.save();
+                context.strokeStyle = "rgba(231,182,80,.65)";
+                context.setLineDash([3, 2]);
+                layer.placements.forEach(item => {
+                    const metatile = metatileFor(item.metatileId);
+                    if (!metatile) return;
+                    const pixels = metatilePixels(metatile);
+                    context.strokeRect(item.x * CELL_W + layer.hOffset + .5, item.y * CELL_H - layer.zOffset + .5, pixels.width - 1, pixels.height - 1);
+                });
+                context.restore();
+            }
+
+            renderGrid();
+            allLayers()
+                .filter(layer => layer.visible)
+                .sort((a, b) => a.order - b.order)
+                .forEach(layer => layer.objects.forEach(object => drawMarker(object, layer)));
+
+            if (selectedTileMapCell !== null && hoverTileMapPixel) {
+                context.strokeStyle = "rgba(231,182,80,.95)";
+                context.strokeRect(hoverTileMapPixel.x + .5, hoverTileMapPixel.y + .5, 7, 7);
+                return;
+            }
+            if (!hoverCell) return;
+            const activeHOffset = activeLayer().hOffset;
+            const activeZOffset = activeLayer().zOffset;
+            const selectedMetatile = metatileFor(selectedMetatileId);
+            if (activeTool === "tile" && selectedMetatile && metatileFits(selectedMetatile, hoverCell)) {
+                drawTile(selectedMetatileId, hoverCell.x, hoverCell.y, activeHOffset, activeZOffset, .55, tileFlipInput.checked);
+                const pixels = metatilePixels(selectedMetatile);
+                context.strokeStyle = "rgba(231,182,80,.95)";
+                context.strokeRect(
+                    hoverCell.x * CELL_W + activeHOffset + .5,
+                    hoverCell.y * CELL_H - activeZOffset + .5,
+                    pixels.width - 1,
+                    pixels.height - 1);
+            } else if (activeTool !== "select") {
+                context.fillStyle = activeTool === "erase" ? "rgba(230,118,97,.32)" : "rgba(112,215,199,.30)";
+                context.fillRect(
+                    hoverCell.x * CELL_W + activeHOffset,
+                    hoverCell.y * CELL_H - activeZOffset,
+                    CELL_W,
+                    CELL_H);
+            }
+        }
+
+        function eventCell(event) {
+            const bounds = canvas.getBoundingClientRect();
+            const layer = activeLayer();
+            const pixelX = (event.clientX - bounds.left) * canvas.width / bounds.width - layer.hOffset;
+            const pixelY = (event.clientY - bounds.top) * canvas.height / bounds.height + layer.zOffset;
+            const x = Math.round((pixelX - TILE_SIZE / 2) / CELL_W);
+            const y = Math.round((pixelY - TILE_SIZE / 2) / CELL_H);
+            if (x < 0 || x >= CELLS_X || y < 0 || y >= CELLS_Y) return null;
+            return { x, y };
+        }
+
+        function objectAtEvent(event) {
+            const bounds = canvas.getBoundingClientRect();
+            const pixelX = (event.clientX - bounds.left) * canvas.width / bounds.width;
+            const pixelY = (event.clientY - bounds.top) * canvas.height / bounds.height;
+            const ordered = [...layers].filter(layer => layer.visible).sort((a, b) => b.order - a.order);
+            for (const layer of ordered) {
+                for (const object of [...layer.objects].reverse()) {
+                    if (!object.visible) continue;
+                    const x = object.x * CELL_W + layer.hOffset + CELL_W / 2;
+                    const y = object.y * CELL_H - layer.zOffset + CELL_H / 2;
+                    if (Math.hypot(pixelX - x, pixelY - y) <= 9) return object;
+                }
+            }
+            return null;
+        }
+
+        function nearestBrushCell(event, forceErase) {
+            if (!strokeAnchorCell) return null;
+
+            const bounds = canvas.getBoundingClientRect();
+            const layer = activeLayer();
+            const pointerX = ((event.clientX - bounds.left) * canvas.width / bounds.width - layer.hOffset - TILE_SIZE / 2) / CELL_W;
+            const pointerY = ((event.clientY - bounds.top) * canvas.height / bounds.height + layer.zOffset - TILE_SIZE / 2) / CELL_H;
+            const spacing = Number(brushSpacingInput.value);
+            const deltaX = pointerX - strokeAnchorCell.x;
+            const deltaY = pointerY - strokeAnchorCell.y;
+            const pointerU = (deltaX + deltaY) / 2;
+            const pointerV = (deltaX - deltaY) / 2;
+            const minX = 0;
+            const minY = 0;
+            const maxX = CELLS_X - 1;
+            const maxY = CELLS_Y - 1;
+            let nearest = null;
+            let nearestDistance = Infinity;
+
+            for (let uIndex = Math.floor(pointerU / spacing) - 1; uIndex <= Math.floor(pointerU / spacing) + 2; ++uIndex) {
+                for (let vIndex = Math.floor(pointerV / spacing) - 1; vIndex <= Math.floor(pointerV / spacing) + 2; ++vIndex) {
+                    const u = uIndex * spacing;
+                    const v = vIndex * spacing;
+                    const cell = {
+                        x: strokeAnchorCell.x + u + v,
+                        y: strokeAnchorCell.y + u - v,
+                    };
+                    if (cell.x < minX || cell.x > maxX || cell.y < minY || cell.y > maxY) continue;
+
+                    const distance = Math.hypot((cell.x - pointerX) * CELL_W, (cell.y - pointerY) * CELL_H);
+                    if (distance < nearestDistance) {
+                        nearest = cell;
+                        nearestDistance = distance;
+                    }
+                }
+            }
+            return nearest;
+        }
+
+        function eventTileMapPixel(event) {
+            const bounds = canvas.getBoundingClientRect();
+            const pixelX = (event.clientX - bounds.left) * canvas.width / bounds.width;
+            const pixelY = (event.clientY - bounds.top) * canvas.height / bounds.height;
+            return {
+                x: Math.max(0, Math.min(canvas.width - 8, Math.floor(pixelX / 8) * 8)),
+                y: Math.max(0, Math.min(canvas.height - 8, Math.floor(pixelY / 8) * 8))
+            };
+        }
+
+        function eraseAt(cell) {
+            const layer = activeLayer();
+            const objectIndex = layer.objects.findIndex(object => object.x === cell.x && object.y === cell.y);
+            if (objectIndex !== -1) {
+                const [removed] = layer.objects.splice(objectIndex, 1);
+                if (inspectorSelection.type === "object" && inspectorSelection.id === removed.id) {
+                    inspectorSelection = { type: "layer", id: layer.id };
+                }
+                return true;
+            }
+            const reversedIndex = [...layer.placements].reverse().findIndex(item => placementContainsCell(item, cell));
+            if (reversedIndex !== -1) {
+                layer.placements.splice(layer.placements.length - 1 - reversedIndex, 1);
+                return true;
+            }
+            return false;
+        }
+
+        function applyTool(cell, forceErase = false, commit = true) {
+            const tool = forceErase ? "erase" : activeTool;
+            const layer = activeLayer();
+            let changed = false;
+            if (tool === "tile") {
+                if (layer.type !== "tile") {
+                    setStatus("Select a Tile Layer before painting tiles.", true);
+                    return false;
+                }
+                if (!metatileFor(selectedMetatileId)) {
+                    setStatus("Create and select a metatile before painting.", true);
+                    return false;
+                }
+                const selectedMetatile = metatileFor(selectedMetatileId);
+                if (!metatileFits(selectedMetatile, cell)) {
+                    setStatus("The metatile does not fit completely on the map at this edge cell.", true);
+                    return false;
+                }
+                const existing = layer.placements.find(item => item.x === cell.x && item.y === cell.y);
+                if (existing && (existing.metatileId !== selectedMetatileId || Boolean(existing.flipX) !== tileFlipInput.checked)) {
+                    existing.metatileId = selectedMetatileId;
+                    existing.flipX = tileFlipInput.checked;
+                    changed = true;
+                } else if (!existing) {
+                    layer.placements.push({ metatileId: selectedMetatileId, x: cell.x, y: cell.y, flipX: tileFlipInput.checked });
+                    changed = true;
+                }
+            } else if (tool === "object") {
+                if (layer.type !== "object") {
+                    setStatus("Select an Object Layer before placing objects.", true);
+                    return false;
+                }
+                const object = createObject("object", cell.x, cell.y);
+                layer.objects.push(object);
+                inspectorSelection = { type: "object", id: object.id };
+                changed = true;
+            } else if (tool === "player") {
+                if (layer.type !== "object") {
+                    setStatus("Select an Object Layer before placing objects.", true);
+                    return false;
+                }
+                let player = allObjects().find(object => object.kind === "player");
+                if (!player) {
+                    player = createObject("player", cell.x, cell.y, "Player");
+                    layer.objects.push(player);
+                    changed = true;
+                } else if (player.x !== cell.x || player.y !== cell.y || layerForObject(player.id) !== layer) {
+                    const oldLayer = layerForObject(player.id);
+                    if (oldLayer && oldLayer !== layer) {
+                        oldLayer.objects = oldLayer.objects.filter(object => object.id !== player.id);
+                        oldLayer.dirty = true;
+                    }
+                    if (!layer.objects.some(object => object.id === player.id)) layer.objects.push(player);
+                    player.x = cell.x;
+                    player.y = cell.y;
+                    changed = true;
+                }
+                inspectorSelection = { type: "object", id: player.id };
+            } else if (tool === "enemy") {
+                if (layer.type !== "object") {
+                    setStatus("Select an Object Layer before placing objects.", true);
+                    return false;
+                }
+                const index = layer.objects.findIndex(object => object.kind === "enemy" && object.x === cell.x && object.y === cell.y);
+                if (index === -1) {
+                    const enemy = createObject("enemy", cell.x, cell.y);
+                    layer.objects.push(enemy);
+                    inspectorSelection = { type: "object", id: enemy.id };
+                } else {
+                    const [removed] = layer.objects.splice(index, 1);
+                    if (inspectorSelection.type === "object" && inspectorSelection.id === removed.id) {
+                        inspectorSelection = { type: "layer", id: layer.id };
+                    }
+                }
+                changed = true;
+            } else if (tool === "erase") {
+                changed = eraseAt(cell);
+            }
+
+            if (changed && commit) {
+                layer.dirty = true;
+                let historyLabel;
+                if (tool === "tile") {
+                    historyLabel = `Place metatile ${selectedMetatileId} at (${cell.x}, ${cell.y})`;
+                } else if (tool === "object") {
+                    historyLabel = `Place object at (${cell.x}, ${cell.y})`;
+                } else if (tool === "player") {
+                    historyLabel = `Move player spawn to (${cell.x}, ${cell.y})`;
+                } else if (tool === "enemy") {
+                    const added = layer.objects.some(object => object.kind === "enemy" && object.x === cell.x && object.y === cell.y);
+                    historyLabel = `${added ? "Add" : "Remove"} enemy spawn at (${cell.x}, ${cell.y})`;
+                } else {
+                    historyLabel = `Erase at (${cell.x}, ${cell.y}) on layer ${activeLevel}`;
+                }
+                pushHistory(historyLabel);
+                updateDirtyBadge();
+                renderLayerList();
+                updateStats();
+                render();
+                if (tool === "tile") {
+                    setStatus(`Placed metatile ${selectedMetatileId} on layer ${activeLevel} at cell (${cell.x}, ${cell.y}).`);
+                } else if (tool === "object") {
+                    setStatus(`Placed object on ${layer.name} at cell (${cell.x}, ${cell.y}).`);
+                } else if (tool === "player") {
+                    setStatus(`Placed player spawn at cell (${cell.x}, ${cell.y}).`);
+                } else if (tool === "enemy") {
+                    setStatus(`Toggled enemy spawn at cell (${cell.x}, ${cell.y}).`);
+                } else {
+                    setStatus(`Removed element from layer ${activeLevel} at cell (${cell.x}, ${cell.y}).`);
+                }
+            } else if (!changed && tool === "erase" && commit) {
+                setStatus("There is no element at this cell on the active layer.");
+            }
+            return changed;
+        }
+
+        function validateLayer(layer) {
+            if (layer.level !== 0) return null;
+            const players = allObjects().filter(object => object.kind === "player");
+            const enemies = allObjects().filter(object => object.kind === "enemy");
+            if (players.length !== 1) return "The map requires exactly one player spawn.";
+            if (enemies.length === 0) return "The map requires at least one enemy spawn.";
+            const player = players[0];
+
+            const blocking = cell => allLayers().some(candidate => candidate.placements.some(item => {
+                const metatile = metatileFor(item.metatileId);
+                if (!metatile) return false;
+                const localX = cell.x * CELL_W + CELL_W / 2 - item.x * CELL_W;
+                const localY = cell.y * CELL_H + CELL_H / 2 - item.y * CELL_H;
+                if (localX < 0 || localY < 0 || localX >= metatile.columns * 8 || localY >= metatile.rows * 8) return false;
+                return Boolean(metatile.collisionMap[Math.floor(localY / 8) * metatile.columns + Math.floor(localX / 8)]);
+            }));
+            if (blocking(player)) {
+                return `Player spawn (${player.x}, ${player.y}) is blocked.`;
+            }
+            const blockedEnemy = enemies.find(blocking);
+            if (blockedEnemy) {
+                return `Enemy spawn (${blockedEnemy.x}, ${blockedEnemy.y}) is blocked.`;
+            }
+            return null;
+        }
+
+        function downloadLayer(level) {
+            const layer = layerFor(level);
+            const error = validateLayer(layer);
+            if (error) {
+                setStatus(error, true);
+                return;
+            }
+
+            const lines = [
+                `# World elevation layer ${level}.`,
+                "# Generated by devtools/bonka/index.html.",
+                `# Layer ID: ${layer.id}`,
+                `# Layer name: ${layer.name}`,
+                `# Layer type: ${layer.type}`,
+                `# Layer visible: ${layer.visible}`,
+                `# Layer opacity: ${layer.opacity}`,
+                `# Layer H-offset: ${layer.hOffset}`,
+                "# Z <pixel_offset>; positive values move this layer upward.",
+                "# O <draw_order>; higher values render above lower values.",
+                "# T <tile_id> <cell_x> <cell_y> [F]; F flips horizontally.",
+                "",
+                `Z ${layer.zOffset}`,
+                `O ${layer.order}`,
+                ""
+            ];
+            [...layer.placements]
+                .sort((a, b) => a.y - b.y || a.x - b.x)
+                .forEach(item => lines.push(`T ${String(item.tileId).padStart(3, "0")} ${item.x} ${item.y}${item.flipX ? " F" : ""}`));
+            if (layer.objects.length) {
+                lines.push("");
+                [...layer.objects]
+                    .sort((a, b) => a.y - b.y || a.x - b.x)
+                    .forEach(object => {
+                        lines.push(`# Object: ${JSON.stringify(object)}`);
+                        if (object.kind !== "object") {
+                            lines.push(`${object.kind === "player" ? "P" : "E"} ${object.x} ${object.y}`);
+                        }
+                    });
+            }
+            lines.push("");
+
+            const blob = new Blob([lines.join("\n")], { type: "text/plain;charset=utf-8" });
+            const url = URL.createObjectURL(blob);
+            const anchor = document.createElement("a");
+            anchor.href = url;
+            anchor.download = projectFileName(`_l${level}`, "map");
+            document.body.append(anchor);
+            anchor.click();
+            anchor.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 0);
+            layer.dirty = false;
+            updateDirtyBadge();
+            renderLayerList();
+            setStatus(`Generated and downloaded ${anchor.download}.`);
+        }
+
+        function parseMap(text, sourceName = "map") {
+            const levelMatch = sourceName.match(/_l(\d+)\.map$/i);
+            const level = levelMatch ? Number(levelMatch[1]) : activeLevel;
+            const layer = createLayer(level);
+            let hasZOffset = false;
+            let hasOrder = false;
+
+            text.split(/\r?\n/).forEach((rawLine, index) => {
+                const line = rawLine.trim();
+                if (!line) return;
+                if (line.startsWith("# Layer ID:")) {
+                    const id = Number(line.slice("# Layer ID:".length).trim());
+                    if (!Number.isInteger(id) || id < 0) throw new Error(`Line ${index + 1}: invalid layer ID.`);
+                    layer.id = id;
+                    nextLayerId = Math.max(nextLayerId, id + 1);
+                    return;
+                }
+                if (line.startsWith("# Layer name:")) {
+                    layer.name = line.slice("# Layer name:".length).trim().slice(0, 64) || `Layer ${level}`;
+                    return;
+                }
+                if (line.startsWith("# Layer type:")) {
+                    layer.type = line.slice("# Layer type:".length).trim() === "object" ? "object" : "tile";
+                    return;
+                }
+                if (line.startsWith("# Layer visible:")) {
+                    layer.visible = line.slice("# Layer visible:".length).trim() !== "false";
+                    return;
+                }
+                if (line.startsWith("# Layer opacity:")) {
+                    const opacity = Number(line.slice("# Layer opacity:".length).trim());
+                    if (!Number.isFinite(opacity) || opacity < 0 || opacity > 1) throw new Error(`Line ${index + 1}: invalid layer opacity.`);
+                    layer.opacity = opacity;
+                    return;
+                }
+                if (line.startsWith("# Layer H-offset:")) {
+                    const hOffset = Number(line.slice("# Layer H-offset:".length).trim());
+                    if (!Number.isInteger(hOffset) || hOffset < -512 || hOffset > 512) throw new Error(`Line ${index + 1}: invalid layer H-offset.`);
+                    layer.hOffset = hOffset;
+                    return;
+                }
+                if (line.startsWith("# Object:")) {
+                    try {
+                        const object = JSON.parse(line.slice("# Object:".length).trim());
+                        if (!Number.isInteger(object.id) || object.id < 0 || !["object", "player", "enemy"].includes(object.kind) ||
+                            !Number.isInteger(object.x) || object.x < 0 || object.x >= CELLS_X ||
+                            !Number.isInteger(object.y) || object.y < 0 || object.y >= CELLS_Y) throw new Error();
+                        object.name = String(object.name || "").slice(0, 64);
+                        object.visible = object.visible !== false;
+                        delete object.layerId;
+                        layer.objects.push(object);
+                        nextObjectId = Math.max(nextObjectId, object.id + 1);
+                    } catch {
+                        throw new Error(`Line ${index + 1}: invalid object metadata.`);
+                    }
+                    return;
+                }
+                if (line.startsWith("#")) return;
+                const parts = line.split(/\s+/);
+                const directive = parts.shift();
+                if (directive === "Z" && parts.length === 1) {
+                    if (hasZOffset) throw new Error(`Line ${index + 1}: duplicate Z-offset.`);
+                    const zOffset = Number(parts[0]);
+                    if (!Number.isInteger(zOffset) || zOffset < -512 || zOffset > 512) {
+                        throw new Error(`Line ${index + 1}: Z-offset must be between -512 and 512.`);
+                    }
+                    layer.zOffset = zOffset;
+                    hasZOffset = true;
+                } else if (directive === "O" && parts.length === 1) {
+                    if (hasOrder) throw new Error(`Line ${index + 1}: duplicate draw order.`);
+                    const order = Number(parts[0]);
+                    if (!Number.isInteger(order)) throw new Error(`Line ${index + 1}: draw order must be an integer.`);
+                    layer.order = order;
+                    hasOrder = true;
+                } else if (directive === "T" && (parts.length === 3 || parts.length === 4)) {
+                    const [tileId, x, y] = parts.slice(0, 3).map(Number);
+                    if (![tileId, x, y].every(Number.isInteger)) throw new Error(`Line ${index + 1}: T values must be integers.`);
+                    if (tileId < 0 || tileId > MAX_TILE_ID || EMPTY_TILE_IDS.has(tileId)) throw new Error(`Line ${index + 1}: invalid tile ID ${tileId}.`);
+                    if (x < 0 || x > CELLS_X - 2 || y < 0 || y > CELLS_Y - 4) throw new Error(`Line ${index + 1}: tile lies outside the map.`);
+                    if (parts.length === 4 && parts[3] !== "F") throw new Error(`Line ${index + 1}: unknown tile flag ${parts[3]}.`);
+                    layer.placements.push({ tileId, x, y, flipX: parts[3] === "F" });
+                } else if ((directive === "P" || directive === "E") && parts.length === 2) {
+                    const [x, y] = parts.map(Number);
+                    if (![x, y].every(Number.isInteger) || x < 0 || x >= CELLS_X || y < 0 || y >= CELLS_Y) {
+                        throw new Error(`Line ${index + 1}: invalid spawn coordinates.`);
+                    }
+                    const kind = directive === "P" ? "player" : "enemy";
+                    if (!layer.objects.some(object => object.kind === kind && object.x === x && object.y === y)) {
+                        layer.objects.push(createObject(kind, x, y, kind === "player" ? "Player" : ""));
+                    }
+                } else {
+                    throw new Error(`Line ${index + 1}: unknown directive "${line}".`);
+                }
+            });
+            return layer;
+        }
+
+        function installLayers(importedLayers, replaceProject = false) {
+            if (replaceProject) {
+                layers = importedLayers;
+            } else {
+                importedLayers.forEach(imported => {
+                    removeLayer(layers, imported.level);
+                    layers.push(imported);
+                });
+            }
+            if (!layerFor(0)) layers.push(createLayer(0));
+            const usedLayerIds = new Set();
+            const usedObjectIds = new Set();
+            allLayers().forEach(layer => {
+                normalizeLayerMetadata(layer);
+                if (usedLayerIds.has(layer.id)) layer.id = nextLayerId++;
+                usedLayerIds.add(layer.id);
+                layer.objects.forEach(object => {
+                    delete object.layerId;
+                    if (usedObjectIds.has(object.id)) object.id = nextObjectId++;
+                    usedObjectIds.add(object.id);
+                });
+            });
+            activeLevel = importedLayers[importedLayers.length - 1]?.level ?? 0;
+            history = [];
+            historyIndex = -1;
+            pushHistory(`Import ${importedLayers.length} layer${importedLayers.length === 1 ? "" : "s"}`);
+            updateDirtyBadge();
+            updateStats();
+            renderLayerList();
+            render();
+        }
+
+        function updateViewTransform() {
+            canvasStage.style.transform = `translate(${viewX}px, ${viewY}px) scale(${viewScale})`;
+            const zoomPercent = Math.round(viewScale * 100);
+            const zoomSlider = document.getElementById("zoomSlider");
+            zoomSlider.value = String(zoomPercent);
+            zoomSlider.title = `Zoom: ${zoomPercent}%`;
+        }
+
+        function fitView() {
+            viewScale = Math.min(canvasWrap.clientWidth / canvas.width, canvasWrap.clientHeight / canvas.height);
+            viewX = (canvasWrap.clientWidth - canvas.width * viewScale) / 2;
+            viewY = (canvasWrap.clientHeight - canvas.height * viewScale) / 2;
+            updateViewTransform();
+        }
+
+        function setZoom(nextScale, clientX, clientY) {
+            const bounds = canvasWrap.getBoundingClientRect();
+            const focusX = clientX === undefined ? bounds.width / 2 : clientX - bounds.left;
+            const focusY = clientY === undefined ? bounds.height / 2 : clientY - bounds.top;
+            const mapX = (focusX - viewX) / viewScale;
+            const mapY = (focusY - viewY) / viewScale;
+            viewScale = Math.max(.5, Math.min(4, nextScale));
+            viewX = focusX - mapX * viewScale;
+            viewY = focusY - mapY * viewScale;
+            updateViewTransform();
+        }
+
+        function finishPointerAction(event) {
+            if (painting) {
+                painting = false;
+                if (strokeChanged) {
+                    activeLayer().dirty = true;
+                    pushHistory(strokeHistoryLabel);
+                    updateDirtyBadge();
+                    updateStats();
+                    renderLayerList();
+                }
+                strokeChanged = false;
+                strokeAnchorCell = null;
+                lastStampedCell = null;
+            }
+            panning = false;
+            panStart = null;
+            if (canvasWrap.hasPointerCapture(event.pointerId)) canvasWrap.releasePointerCapture(event.pointerId);
+        }
+
+        function paintToBrushCell(target, forceErase) {
+            if (!lastStampedCell || !strokeAnchorCell ||
+                (target.x === lastStampedCell.x && target.y === lastStampedCell.y)) return false;
+
+            const spacing = Number(brushSpacingInput.value);
+            let u0 = ((lastStampedCell.x - strokeAnchorCell.x) + (lastStampedCell.y - strokeAnchorCell.y)) / (2 * spacing);
+            let v0 = ((lastStampedCell.x - strokeAnchorCell.x) - (lastStampedCell.y - strokeAnchorCell.y)) / (2 * spacing);
+            const u1 = ((target.x - strokeAnchorCell.x) + (target.y - strokeAnchorCell.y)) / (2 * spacing);
+            const v1 = ((target.x - strokeAnchorCell.x) - (target.y - strokeAnchorCell.y)) / (2 * spacing);
+            const stepU = u0 < u1 ? 1 : -1;
+            const stepV = v0 < v1 ? 1 : -1;
+            const deltaU = Math.abs(u1 - u0);
+            const deltaV = Math.abs(v1 - v0);
+            let error = deltaU - deltaV;
+            let changed = false;
+
+            while (u0 !== u1 || v0 !== v1) {
+                const doubleError = error * 2;
+                if (doubleError > -deltaV) {
+                    error -= deltaV;
+                    u0 += stepU;
+                }
+                if (doubleError < deltaU) {
+                    error += deltaU;
+                    v0 += stepV;
+                }
+                const cell = {
+                    x: strokeAnchorCell.x + (u0 + v0) * spacing,
+                    y: strokeAnchorCell.y + (u0 - v0) * spacing,
+                };
+                changed = applyTool(cell, forceErase, false) || changed;
+            }
+            lastStampedCell = { ...target };
+            return changed;
+        }
+
+        sheet.addEventListener("load", () => {
+            render();
+            setStatus("Spritesheet loaded. Import a map or start with the empty canvas.");
+        });
+
+        canvasWrap.addEventListener("pointermove", event => {
+            if (panning) {
+                viewX = panStart.viewX + event.clientX - panStart.clientX;
+                viewY = panStart.viewY + event.clientY - panStart.clientY;
+                updateViewTransform();
+                return;
+            }
+            hoverCell = eventCell(event);
+            hoverTileMapPixel = selectedTileMapCell === null ? null : eventTileMapPixel(event);
+            document.getElementById("cursorPosition").textContent = hoverCell
+                ? `cell ${hoverCell.x}, ${hoverCell.y} · px ${hoverCell.x * CELL_W}, ${hoverCell.y * CELL_H} · layer ${activeLevel}`
+                : "cell —, —";
+            if (painting && hoverCell) {
+                const target = nearestBrushCell(event, event.buttons === 2);
+                if (target) {
+                    strokeChanged = paintToBrushCell(target, event.buttons === 2) || strokeChanged;
+                    updateStats();
+                    render();
+                }
+            }
+            render();
+        });
+        canvasWrap.addEventListener("pointerleave", () => {
+            if (painting || panning) return;
+            hoverCell = null;
+            hoverTileMapPixel = null;
+            document.getElementById("cursorPosition").textContent = "cell —, —";
+            render();
+        });
+        canvasWrap.addEventListener("pointerdown", event => {
+            event.preventDefault();
+            if (event.button === 1 || (event.button === 0 && event.altKey)) {
+                canvasWrap.setPointerCapture(event.pointerId);
+                panning = true;
+                hoverTileMapPixel = null;
+                render();
+                panStart = { clientX: event.clientX, clientY: event.clientY, viewX, viewY };
+                return;
+            }
+            if (event.button === 0 && selectedTileMapCell !== null) {
+                captureTileMapCell(event);
+                return;
+            }
+            if (event.button === 0 && activeTool === "select") {
+                const object = objectAtEvent(event);
+                if (object) selectObject(object);
+                else setStatus("No object at this position.");
+                return;
+            }
+
+            canvasWrap.setPointerCapture(event.pointerId);
+
+            const cell = eventCell(event);
+            if (!cell) return;
+            const forceErase = event.button === 2;
+            if (activeTool === "tile" || activeTool === "erase" || forceErase) {
+                painting = true;
+                strokeHistoryLabel = forceErase || activeTool === "erase"
+                    ? `Erase stroke on layer ${activeLevel}`
+                    : `Paint metatile ${selectedMetatileId ?? "—"} on layer ${activeLevel}`;
+                strokeChanged = applyTool(cell, forceErase, false);
+                strokeAnchorCell = { ...cell };
+                lastStampedCell = { ...cell };
+                updateStats();
+                render();
+            } else {
+                applyTool(cell, false, true);
+            }
+        });
+        canvasWrap.addEventListener("pointerup", finishPointerAction);
+        canvasWrap.addEventListener("pointercancel", finishPointerAction);
+        canvasWrap.addEventListener("contextmenu", event => event.preventDefault());
+        canvasWrap.addEventListener("wheel", event => {
+            event.preventDefault();
+            setZoom(viewScale * (event.deltaY < 0 ? 1.15 : 1 / 1.15), event.clientX, event.clientY);
+        }, { passive: false });
+
+        document.querySelectorAll(".panel > .panel-title").forEach(panelTitle => {
+            panelTitle.addEventListener("click", () => {
+                const collapsed = panelTitle.parentElement.classList.toggle("collapsed");
+                panelTitle.setAttribute("aria-expanded", String(!collapsed));
+                panelTitle.title = collapsed ? "Expand panel" : "Collapse panel";
+            });
+        });
+
+        document.getElementById("tools").addEventListener("click", event => {
+            const button = event.target.closest("[data-tool]");
+            if (button) selectTool(button.dataset.tool);
+        });
+        document.querySelector(".canvas-tabs").addEventListener("click", event => {
+            const tab = event.target.closest("[data-canvas-tab]");
+            if (!tab) return;
+            clearTileMapCellSelection();
+            activeCanvasTab = tab.dataset.canvasTab;
+            document.querySelectorAll("[data-canvas-tab]").forEach(button => {
+                const active = button === tab;
+                button.classList.toggle("active", active);
+                button.setAttribute("aria-selected", String(active));
+            });
+            document.querySelectorAll("[data-canvas-tab-content]").forEach(content => {
+                content.hidden = content.dataset.canvasTabContent !== activeCanvasTab;
+            });
+            updateTileMapSelection();
+            if (activeCanvasTab === "background-map") renderBackgroundMap();
+        });
+        backgroundMapCanvas.addEventListener("pointerdown", event => {
+            event.preventDefault();
+            if (event.button !== 0 && event.button !== 2) return;
+            if (event.button === 0) {
+                if (selectedBackgroundTileCell === null) {
+                    setStatus("Select a tile from the Tileset first.", true);
+                    return;
+                }
+                if (!tileMapCellHasData(selectedBackgroundTileCell)) {
+                    setStatus("The selected tileset tile does not contain image data yet.", true);
+                    return;
+                }
+                tilemapStrokeTileIndex = selectedBackgroundTileCell + 1;
+                tilemapStrokeLabel = `Paint tileset index ${tilemapStrokeTileIndex} on the tilemap`;
+            } else {
+                tilemapStrokeTileIndex = 0;
+                tilemapStrokeLabel = "Erase tilemap cells";
+            }
+            paintingTilemap = true;
+            tilemapStrokeChanged = paintTilemapCell(event);
+            backgroundMapCanvas.setPointerCapture(event.pointerId);
+        });
+        backgroundMapCanvas.addEventListener("pointermove", event => {
+            if (paintingTilemap) tilemapStrokeChanged = paintTilemapCell(event) || tilemapStrokeChanged;
+        });
+        backgroundMapCanvas.addEventListener("pointerup", finishTilemapStroke);
+        backgroundMapCanvas.addEventListener("pointercancel", finishTilemapStroke);
+        backgroundMapCanvas.addEventListener("contextmenu", event => event.preventDefault());
+        document.getElementById("downloadRegularBackgroundButton").addEventListener("click", event => {
+            prepareBmpDownload(event, () => {
+                renderMapTiles();
+                try {
+                    return indexedBmpDataUrl(canvas);
+                } finally {
+                    render();
+                }
+            }, projectFileName("", "bmp"));
+        });
+        document.getElementById("downloadBackgroundTilesButton").addEventListener("click", event => {
+            if (tileMapColumns * tileMapRows > 1023) {
+                event.preventDefault();
+                setStatus("The tileset may contain at most 1023 populated tiles.", true);
+                return;
+            }
+            if (prepareBmpDownload(event, () => indexedBmpDataUrl(backgroundTilesCanvas()), projectFileName("_tileset", "bmp"))) {
+                downloadBlob(new Blob(['{\n  "type": "regular_bg_tiles",\n  "bpp_mode": "bpp_4"\n}\n'], { type: "application/json" }), projectFileName("_tileset", "json"));
+            }
+        });
+        document.getElementById("downloadBackgroundMapButton").addEventListener("click", () => {
+            const rows = [];
+            for (let y = 0; y < BACKGROUND_MAP_TILES; y += 1) {
+                const cells = [];
+                for (let x = 0; x < BACKGROUND_MAP_TILES; x += 1) {
+                    cells.push(`0x${backgroundMapCells[y * BACKGROUND_MAP_TILES + x].toString(16).padStart(4, "0")}`);
+                }
+                rows.push(cells.join(" "));
+            }
+            const text = [
+                "# Butano regular background map cells (32 x 32, 8x8 tiles).",
+                "# Bits 0-9: bg_tilesheet tile index; tile 0 is transparent.",
+                ...rows,
+                ""
+            ].join("\n");
+            const fileName = projectFileName("_tilemap", "map");
+            downloadBlob(new Blob([text], { type: "text/plain;charset=utf-8" }), fileName);
+            setStatus(`Downloaded ${fileName}.`);
+        });
+        document.getElementById("tileSearch").addEventListener("input", event => buildPalette(event.target.value));
+        projectNameInput.addEventListener("input", updateProjectTitle);
+        document.getElementById("commandsButton").addEventListener("click", () => commandsDialog.showModal());
+        document.getElementById("commandsCloseButton").addEventListener("click", () => commandsDialog.close());
+        commandsDialog.addEventListener("click", event => {
+            if (event.target === commandsDialog) commandsDialog.close();
+        });
+        tilemapIndexToggle.addEventListener("change", () => {
+            tilemapIndexOpacity.disabled = !tilemapIndexToggle.checked;
+            renderBackgroundMap();
+        });
+        tilemapIndexOpacity.addEventListener("input", () => {
+            tilemapIndexOpacityValue.textContent = `${Math.round(Number(tilemapIndexOpacity.value) * 100)}%`;
+            renderBackgroundMap();
+        });
+        document.getElementById("undoButton").addEventListener("click", undo);
+        document.getElementById("redoButton").addEventListener("click", redo);
+        document.getElementById("importButton").addEventListener("click", () => fileInput.click());
+        document.getElementById("addTileLayerButton").addEventListener("click", () => addLayer("tile"));
+        document.getElementById("addObjectLayerButton").addEventListener("click", () => addLayer("object"));
+        document.getElementById("addGroupButton").addEventListener("click", addGroup);
+        document.getElementById("deleteLayerButton").addEventListener("click", deleteActiveLayer);
+        inspectorGroupName.addEventListener("change", () => {
+            const group = inspectorSelection.type === "group" ? inspectorSelection.group : null;
+            if (!group || !isGroup(group)) return;
+            const name = inspectorGroupName.value.trim().slice(0, 64) || "Group";
+            inspectorGroupName.value = name;
+            if (name === group.name) return;
+            group.name = name;
+            allLayers(group.layers).forEach(layer => layer.dirty = true);
+            pushHistory(`Rename group to ${name}`);
+            updateDirtyBadge();
+            renderLayerList();
+            setStatus(`Group renamed to ${name}.`);
+        });
+        inspectorLayerName.addEventListener("change", () => {
+            const layer = layerForId(inspectorSelection.id);
+            if (!layer) return;
+            const name = inspectorLayerName.value.trim().slice(0, 64) || `Layer ${layer.level}`;
+            inspectorLayerName.value = name;
+            if (name === layer.name) return;
+
+            layer.name = name;
+            commitLayerChange(layer, `Rename layer ID ${layer.id} to ${name}`);
+            setStatus(`Layer ID ${layer.id} renamed to ${name}.`);
+        });
+        inspectorLayerVisible.addEventListener("change", () => {
+            const layer = layerForId(inspectorSelection.id);
+            if (!layer || layer.visible === inspectorLayerVisible.checked) return;
+            layer.visible = inspectorLayerVisible.checked;
+            commitLayerChange(layer, `${layer.visible ? "Show" : "Hide"} ${layer.name}`);
+            setStatus(`${layer.name} is ${layer.visible ? "visible" : "hidden"}.`);
+        });
+        inspectorLayerOpacity.addEventListener("focus", () => {
+            const layer = layerForId(inspectorSelection.id);
+            if (layer) inspectorLayerOpacity.dataset.previous = String(layer.opacity);
+        });
+        inspectorLayerOpacity.addEventListener("pointerdown", () => {
+            const layer = layerForId(inspectorSelection.id);
+            if (layer) inspectorLayerOpacity.dataset.previous = String(layer.opacity);
+        });
+        inspectorLayerOpacity.addEventListener("input", () => {
+            const layer = layerForId(inspectorSelection.id);
+            if (!layer) return;
+            const value = Number(inspectorLayerOpacity.value);
+            const opacity = Math.max(0, Math.min(1, Number.isFinite(value) ? value : 1));
+            inspectorLayerOpacity.value = String(opacity);
+            layer.opacity = opacity;
+            inspectorLayerOpacityValue.textContent = `${Math.round(opacity * 100)}%`;
+            render();
+        });
+        inspectorLayerOpacity.addEventListener("change", () => {
+            const layer = layerForId(inspectorSelection.id);
+            if (!layer) return;
+            const previous = Number(inspectorLayerOpacity.dataset.previous);
+            if (Number.isFinite(previous) && previous === layer.opacity) return;
+            commitLayerChange(layer, `Set ${layer.name} opacity to ${layer.opacity}`);
+            setStatus(`${layer.name} opacity: ${layer.opacity}.`);
+        });
+        inspectorZOffset.addEventListener("change", () => {
+            const layer = layerForId(inspectorSelection.id);
+            if (!layer) return;
+            const value = Number(inspectorZOffset.value);
+            const zOffset = Math.max(-512, Math.min(512, Number.isFinite(value) ? Math.round(value) : 0));
+            inspectorZOffset.value = String(zOffset);
+            if (zOffset === layer.zOffset) return;
+
+            layer.zOffset = zOffset;
+            commitLayerChange(layer, `Set ${layer.name} Z-offset to ${layer.zOffset}px`);
+            setStatus(`Z-offset for layer ${layer.level}: ${layer.zOffset}px.`);
+        });
+        inspectorHOffset.addEventListener("change", () => {
+            const layer = layerForId(inspectorSelection.id);
+            if (!layer) return;
+            const value = Number(inspectorHOffset.value);
+            const hOffset = Math.max(-512, Math.min(512, Number.isFinite(value) ? Math.round(value) : 0));
+            inspectorHOffset.value = String(hOffset);
+            if (hOffset === layer.hOffset) return;
+            layer.hOffset = hOffset;
+            commitLayerChange(layer, `Set ${layer.name} H-offset to ${layer.hOffset}px`);
+            setStatus(`H-offset for ${layer.name}: ${layer.hOffset}px.`);
+        });
+        inspectorObjectName.addEventListener("change", () => {
+            const object = objectFor(inspectorSelection.id);
+            if (!object) return;
+            const defaultNames = { object: "Object", player: "Player", enemy: "Enemy" };
+            const name = inspectorObjectName.value.trim().slice(0, 64) || `${defaultNames[object.kind]} ${object.id}`;
+            inspectorObjectName.value = name;
+            if (name === object.name) return;
+            object.name = name;
+            commitObjectChange(object, `Rename object ID ${object.id} to ${name}`);
+            setStatus(`Object ID ${object.id} renamed to ${name}.`);
+        });
+        inspectorObjectVisible.addEventListener("change", () => {
+            const object = objectFor(inspectorSelection.id);
+            if (!object || object.visible === inspectorObjectVisible.checked) return;
+            object.visible = inspectorObjectVisible.checked;
+            commitObjectChange(object, `${object.visible ? "Show" : "Hide"} ${object.name}`);
+            setStatus(`${object.name} is ${object.visible ? "visible" : "hidden"}.`);
+        });
+        const updateObjectPosition = () => {
+            const object = objectFor(inspectorSelection.id);
+            if (!object) return;
+            const x = Math.max(0, Math.min(CELLS_X - 1, Math.round(Number(inspectorObjectX.value) || 0)));
+            const y = Math.max(0, Math.min(CELLS_Y - 1, Math.round(Number(inspectorObjectY.value) || 0)));
+            inspectorObjectX.value = String(x);
+            inspectorObjectY.value = String(y);
+            if (x === object.x && y === object.y) return;
+            object.x = x;
+            object.y = y;
+            commitObjectChange(object, `Move ${object.name} to (${x}, ${y})`);
+            setStatus(`${object.name} moved to (${x}, ${y}).`);
+        };
+        inspectorObjectX.addEventListener("change", updateObjectPosition);
+        inspectorObjectY.addEventListener("change", updateObjectPosition);
+        document.getElementById("zoomOutButton").addEventListener("click", () => setZoom(viewScale / 1.25));
+        document.getElementById("zoomInButton").addEventListener("click", () => setZoom(viewScale * 1.25));
+        document.getElementById("zoomSlider").addEventListener("input", event => setZoom(Number(event.target.value) / 100));
+        document.getElementById("zoomResetButton").addEventListener("click", () => setZoom(1));
+        document.getElementById("fitButton").addEventListener("click", fitView);
+        document.getElementById("clearButton").addEventListener("click", () => {
+            if (!confirm(`Delete all content from ${activeLayer().name}?`)) return;
+            mutate(() => {
+                activeLayer().placements = [];
+                activeLayer().objects = [];
+                inspectorSelection = { type: "layer", id: activeLayer().id };
+            }, `Clear layer ${activeLevel}`);
+            setStatus(`Layer ${activeLevel} cleared.`);
+        });
+        fileInput.addEventListener("change", async () => {
+            const file = fileInput.files[0];
+            if (!file) return;
+            try {
+                await loadSceneDocument(JSON.parse(await file.text()));
+                history = [];
+                historyIndex = -1;
+                pushHistory("Import scene");
+                setStatus(`Imported ${file.name}.`);
+            } catch (error) {
+                setStatus(error.message, true);
+            } finally {
+                fileInput.value = "";
+            }
+        });
+        document.getElementById("exportButton").addEventListener("click", () => {
+            updateProjectTitle();
+            downloadBlob(new Blob([JSON.stringify(sceneDocument(), null, 2) + "\n"], { type: "application/json" }), projectFileName("", "json"));
+            setStatus(`Exported ${projectFileName("", "json")}.`);
+        });
+        tilesetImportButton.addEventListener("click", () => tilesetFileInput.click());
+        tilesetFileInput.addEventListener("change", async () => {
+            const file = tilesetFileInput.files[0];
+            if (!file) return;
+            try {
+                const image = await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = () => {
+                        const loaded = new Image();
+                        loaded.onload = () => resolve(loaded);
+                        loaded.onerror = () => reject(new Error("Could not read PNG tileset."));
+                        loaded.src = String(reader.result);
+                    };
+                    reader.onerror = () => reject(new Error("Could not read PNG tileset."));
+                    reader.readAsDataURL(file);
+                });
+                if (image.width % 8 || image.height % 8) throw new Error("Tileset dimensions must be divisible by 8 pixels.");
+                const name = file.name.replace(/\.[^.]+$/, "") || "Tileset";
+                const tileset = createTileset(name, image.src, image.width, image.height);
+                tileset.imageName = file.name;
+                tilesets.push(tileset);
+                tilesetImages.set(tileset.id, image);
+                selectedTilesetId = tileset.id;
+                selectedSubtileId = null;
+                pushHistory(`Import tileset ${name}`);
+                buildPalette();
+                setStatus(`Imported ${name} (${tileset.columns}×${Math.floor(tileset.tileCount / tileset.columns)} subtiles).`);
+            } catch (error) {
+                setStatus(error.message, true);
+            } finally {
+                tilesetFileInput.value = "";
+            }
+        });
+        document.getElementById("addMetatileButton").addEventListener("click", () => {
+            if (!selectedTilesetId) {
+                setStatus("Import or select a tileset first.", true);
+                return;
+            }
+            const metatile = createMetatile(selectedTilesetId, Number(metatileColumnsInput.value), Number(metatileRowsInput.value), metatileNameInput.value.trim());
+            metatiles.push(metatile);
+            selectMetatile(metatile.id);
+            pushHistory(`Add ${metatile.name}`);
+        });
+        metatileModeButton.addEventListener("click", () => {
+            metatileEditMode = metatileEditMode === "tiles" ? "collision" : "tiles";
+            metatileModeButton.textContent = metatileEditMode === "tiles" ? "Tiles" : "Collision";
+            renderMetatileEditor();
+        });
+        metatileNameInput.addEventListener("change", () => {
+            const metatile = metatileFor(selectedMetatileId);
+            if (!metatile) return;
+            const name = metatileNameInput.value.trim().slice(0, 64) || `Metatile ${metatile.id}`;
+            if (name === metatile.name) return;
+            metatile.name = name;
+            metatileNameInput.value = name;
+            pushHistory(`Rename metatile to ${name}`);
+            renderMetatileList();
+        });
+        gridToggle.addEventListener("change", render);
+        footprintToggle.addEventListener("change", render);
+        tileFlipInput.addEventListener("change", () => {
+            updateInspector();
+            render();
+        });
+        brushSpacingInput.addEventListener("change", () => {
+            const spacing = Number(brushSpacingInput.value);
+            brushSpacingInput.value = String(Math.max(1, Math.min(8, Math.round(Number.isFinite(spacing) ? spacing : 1))));
+            setStatus(`Brush spacing: ${brushSpacingInput.value} isometric grid step${brushSpacingInput.value === "1" ? "" : "s"}.`);
+        });
+
+        document.addEventListener("keydown", event => {
+            if (event.target.matches("input, select")) return;
+            if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "z") {
+                event.preventDefault();
+                event.shiftKey ? redo() : undo();
+                return;
+            }
+            if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "y") {
+                event.preventDefault();
+                redo();
+                return;
+            }
+            const shortcuts = { s: "select", t: "tile", o: "object", p: "player", e: "enemy", x: "erase" };
+            const tool = shortcuts[event.key.toLowerCase()];
+            if (tool) selectTool(tool);
+            if (event.key.toLowerCase() === "g") {
+                gridToggle.checked = !gridToggle.checked;
+                render();
+            }
+        });
+
+        initializePillEditors();
+        updateProjectTitle();
+        const defaultTileset = createTileset("spritesheet", SHEET_URL, 352, 352);
+        tilesets.push(defaultTileset);
+        selectedTilesetId = defaultTileset.id;
+        loadTilesetImage(defaultTileset);
+        pushHistory("Initial state");
+        renderLayerList();
+        updateStats();
+        renderMetatileEditor();
+        renderMetatileList();
+        render();
+        requestAnimationFrame(fitView);
+    </script>
+</body>
+</html>
