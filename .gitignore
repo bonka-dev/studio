@@ -1,0 +1,18 @@
+# Game Engine
+vendor/
+
+# Build artifacts
+build/
+*.gba
+*.elf
+*.o
+*.sav
+
+# External tools
+tools/
+
+# Node asset-generator deps (installed in Docker image only, never in the repo)
+*node_modules/
+
+# Generated assets from devtools/bonka
+.bonka/

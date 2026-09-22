@@ -1,0 +1,17 @@
+name: bonka
+
+services:
+  gba:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - .:/workspace
+    working_dir: /workspace
+    command: node devtools/bonka/server.js
+    ports:
+      - "8000:8000"
+    environment:
+      - HOST=0.0.0.0
+      - DEVKITPRO=/opt/devkitpro
+      - DEVKITARM=/opt/devkitpro/devkitARM

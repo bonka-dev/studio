@@ -1,21 +1,59 @@
 # Bonka
 
-Bonka is an experimental browser-based editor for tile-based and GBA projects.
+Bonka is an experimental browser-based editor and GBA development toolkit.
 
-Version 0.1 provides the original isometric scene editor. It is an early editor release and does not include a demo game, game assets, or project content.
+Version 0.2 adds the first public GBA workflow: an asset generator, and a Docker-based development environment.
 
 ## Requirements
 
+- Docker and Docker Compose
+- Git
+- Game Boy Advance emulator (Optional)
+
+For running the editor outside Docker:
+
 - Node.js 20 or newer
 
-## Run locally
+## Install Butano
+
+Bonka expects a local Butano checkout at `vendor/butano/`.
+
+### Clone Butano and start the container
 
 ```bash
-node devtools/bonka/server.js
+git clone https://github.com/GValiente/butano.git vendor/butano
+docker compose up -d --build
 ```
 
-Open:
-http://localhost:8000/
+Open the Bonka editor: http://localhost:8000
+
+### Stop the container when finished
+
+```bash
+docker compose down
+```
+
+### Build a GBA ROM
+
+```bash
+docker compose exec -T gba make
+```
+
+### Clean and rebuild:
+
+```bash
+docker compose exec -T gba make clean
+docker compose exec -T gba make
+```
+
+It exists to verify the public Bonka, Butano, Docker, and GBA build workflow.
+It is not a game runtime and does not contain private game behavior.
+
+## GBA Asset Generator
+
+The asset generator runs on the development machine or in the development container. It transforms the public Bonka scene into disposable Butano build inputs below `.bonka/`.
+
+Generated files are not committed and must not be edited manually.
 
 ## Status
 
@@ -25,11 +63,11 @@ Bonka is under active development.
 
 - Project Format v1
 - Reusable assets and entity definitions
-- Butano export adapter
+- Generic GBA entity generation
 - Nuxt editor migration
 
 ## License
 
-Bonka is licensed under the GNU General Public License v3.0 or later. See [LICENSE](https://github.com/bonka-dev/studio/blob/master/LICENSE).
+Bonka is licensed under the GNU General Public License v3.0 or later. See [LICENSE](./LICENSE).
 
-This repository does not include game source code, game logic, maps, sprites, audio, or other project-specific assets.
+This repository includes a minimal public GBA welcome screen. It does not include a game, game logic, maps, sprites, audio, or other project-specific assets.

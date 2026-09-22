@@ -1,0 +1,15 @@
+{
+  "noAuthors": true,
+  "types": {
+    "feat": { "title": "Features", "semver": "minor" },
+    "fix": { "title": "Bug Fixes", "semver": "patch" },
+    "perf": { "title": "Performance", "semver": "patch" },
+    "refactor": { "title": "Refactoring", "semver": "patch" },
+    "docs": { "title": "Documentation", "semver": "patch" },
+    "style": { "title": "Style", "semver": "patch" },
+    "test": { "title": "Testing", "semver": "patch" },
+    "build": { "title": "Build", "semver": "patch" },
+    "ci": { "title": "CI", "semver": "patch" },
+    "chore": { "title": "Maintenance", "semver": "patch" }
+  }
+}
