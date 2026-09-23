@@ -1,0 +1,31 @@
+{
+  "formatVersion": 1,
+  "type": "tileset",
+  "id": "sample-tileset",
+  "name": "Sample Tileset",
+  "source": "tileset.svg",
+  "tileSize": {
+    "width": 8,
+    "height": 8
+  },
+  "layout": {
+    "imageWidth": 8,
+    "imageHeight": 8,
+    "columns": 1,
+    "tileCount": 1,
+    "margin": 0,
+    "spacing": 0
+  },
+  "metatiles": [
+    {
+      "id": "sample-metatile",
+      "name": "Sample Metatile",
+      "columns": 1,
+      "rows": 1,
+      "visible": true,
+      "opacity": 1,
+      "tiles": [0],
+      "collision": [0]
+    }
+  ]
+}

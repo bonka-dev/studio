@@ -1,0 +1,15 @@
+{
+  "formatVersion": 1,
+  "name": "Validation Fixture",
+  "engine": "butano",
+  "startScene": "sample-scene",
+  "createdWith": {
+    "bonka": "0.3.0-dev"
+  },
+  "resources": {
+    "scenes": ["scenes/sample.scene.json"],
+    "tilesets": ["tilesets/sample.tileset.json"],
+    "sprites": ["sprites/sample.sprite.json"],
+    "entities": ["entities/sample.entity.json"]
+  }
+}

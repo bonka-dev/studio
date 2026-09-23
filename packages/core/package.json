@@ -1,0 +1,19 @@
+{
+  "name": "@bonka/core",
+  "version": "0.3.0-dev",
+  "private": true,
+  "license": "GPL-3.0-or-later",
+  "type": "module",
+  "description": "Project Format v1 loading, validation, and project graph logic.",
+  "scripts": {
+    "test": "node --test"
+  },
+  "exports": {
+    ".": "./src/index.mjs",
+    "./node": "./src/node-project-loader.mjs"
+  },
+  "dependencies": {
+    "@bonka/project-format": "file:../project-format",
+    "ajv": "8.20.0"
+  }
+}

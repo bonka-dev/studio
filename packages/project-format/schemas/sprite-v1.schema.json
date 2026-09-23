@@ -1,0 +1,91 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://bonka.dev/schema/sprite-v1.json",
+  "title": "Bonka Sprite v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["formatVersion", "type", "id", "source", "frameSize", "frameCount", "animations", "gba"],
+  "properties": {
+    "formatVersion": { "const": 1 },
+    "type": { "const": "sprite" },
+    "id": { "$ref": "#/definitions/id" },
+    "createdWith": { "$ref": "#/definitions/createdWith" },
+    "source": { "$ref": "#/definitions/portablePath" },
+    "frameSize": { "$ref": "#/definitions/size" },
+    "frameCount": { "type": "integer", "minimum": 1 },
+    "origin": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["x", "y"],
+      "properties": {
+        "x": { "type": "integer" },
+        "y": { "type": "integer" }
+      }
+    },
+    "animations": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": { "$ref": "#/definitions/id" },
+      "additionalProperties": { "$ref": "#/definitions/animation" }
+    },
+    "gba": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["colors", "bpp"],
+      "properties": {
+        "colors": { "enum": [16, 256] },
+        "bpp": { "enum": [4, 8] },
+        "priority": { "type": "integer", "minimum": 0, "maximum": 3 }
+      }
+    }
+  },
+  "definitions": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+    },
+    "portablePath": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!/)(?![A-Za-z]:)(?!.*\\\\)(?!.*(?:^|/)\\.\\.(?:/|$)).+$"
+    },
+    "createdWith": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["bonka"],
+      "properties": {
+        "bonka": { "type": "string", "minLength": 1 }
+      }
+    },
+    "size": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["width", "height"],
+      "properties": {
+        "width": { "type": "integer", "minimum": 1 },
+        "height": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "animation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["loop", "frames"],
+      "properties": {
+        "loop": { "type": "boolean" },
+        "frames": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["index", "duration"],
+            "properties": {
+              "index": { "type": "integer", "minimum": 0 },
+              "duration": { "type": "integer", "minimum": 1 }
+            }
+          }
+        }
+      }
+    }
+  }
+}

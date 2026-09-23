@@ -66,6 +66,18 @@ Bonka is under active development.
 - Generic GBA entity generation
 - Nuxt editor migration
 
+## v0.3 Workspace
+
+Project Format v1 development is organized into explicit package boundaries:
+
+- `apps/editor`: GPL-licensed browser authoring application.
+- `packages/core`: GPL-licensed project loading and validation.
+- `packages/project-format`: Apache-licensed Project Format schemas and specification.
+
+The legacy editor and generator below `devtools/bonka` remain part of the
+historical v0.1 and v0.2 releases while their v1 replacements are developed in
+these packages.
+
 ## License
 
 Bonka is licensed under the GNU General Public License v3.0 or later. See [LICENSE](./LICENSE).

@@ -1,0 +1,11 @@
+{
+  "name": "@bonka/project-format",
+  "version": "0.3.0-dev",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "description": "Project Format v1 specifications and JSON Schemas.",
+  "exports": {
+    "./schemas/*.json": "./schemas/*.json"
+  }
+}

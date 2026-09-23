@@ -1,0 +1,237 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://bonka.dev/schema/scene-v1.json",
+  "title": "Bonka Scene v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["formatVersion", "type", "id", "name", "orientation", "size", "grid", "collisionGrid", "tileSize", "tilesets", "layers", "entities"],
+  "properties": {
+    "formatVersion": { "const": 1 },
+    "type": { "const": "scene" },
+    "id": { "$ref": "#/definitions/id" },
+    "name": { "type": "string", "minLength": 1 },
+    "createdWith": { "$ref": "#/definitions/createdWith" },
+    "orientation": { "enum": ["isometric"] },
+    "size": { "$ref": "#/definitions/gridSize" },
+    "grid": { "$ref": "#/definitions/pixelSize" },
+    "collisionGrid": { "$ref": "#/definitions/pixelSize" },
+    "tileSize": { "$ref": "#/definitions/pixelSize" },
+    "tilesets": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/id" },
+      "uniqueItems": true
+    },
+    "layers": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/layer" }
+    },
+    "entities": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/entityInstance" }
+    },
+    "editor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["nextLayerId", "nextObjectId", "nextTilesetId", "nextMetatileId"],
+      "properties": {
+        "nextLayerId": { "type": "integer", "minimum": 0 },
+        "nextObjectId": { "type": "integer", "minimum": 0 },
+        "nextTilesetId": { "type": "integer", "minimum": 0 },
+        "nextMetatileId": { "type": "integer", "minimum": 0 }
+      }
+    }
+  },
+  "definitions": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+    },
+    "createdWith": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["bonka"],
+      "properties": {
+        "bonka": { "type": "string", "minLength": 1 }
+      }
+    },
+    "gridSize": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["columns", "rows"],
+      "properties": {
+        "columns": { "type": "integer", "minimum": 1 },
+        "rows": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "pixelSize": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["width", "height"],
+      "properties": {
+        "width": { "type": "integer", "minimum": 1 },
+        "height": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "cell": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["x", "y"],
+      "properties": {
+        "x": { "type": "integer", "minimum": 0 },
+        "y": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "offset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["x", "y"],
+      "properties": {
+        "x": { "type": "integer" },
+        "y": { "type": "integer" }
+      }
+    },
+    "layerBase": {
+      "type": "object",
+      "required": ["id", "type", "name", "visible", "opacity", "order", "offset"],
+      "properties": {
+        "id": { "$ref": "#/definitions/id" },
+        "type": { "enum": ["group", "tile", "object"] },
+        "name": { "type": "string", "minLength": 1 },
+        "level": { "type": "integer" },
+        "visible": { "type": "boolean" },
+        "opacity": { "type": "number", "minimum": 0, "maximum": 1 },
+        "order": { "type": "integer" },
+        "offset": { "$ref": "#/definitions/offset" }
+      }
+    },
+    "layer": {
+      "oneOf": [
+        { "$ref": "#/definitions/groupLayer" },
+        { "$ref": "#/definitions/tileLayer" },
+        { "$ref": "#/definitions/objectLayer" }
+      ]
+    },
+    "groupLayer": {
+      "allOf": [
+        { "$ref": "#/definitions/layerBase" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["id", "type", "name", "visible", "opacity", "order", "offset", "layers"],
+          "properties": {
+            "id": { "$ref": "#/definitions/id" },
+            "type": { "const": "group" },
+            "name": { "type": "string", "minLength": 1 },
+            "level": { "type": "integer" },
+            "visible": { "type": "boolean" },
+            "opacity": { "type": "number", "minimum": 0, "maximum": 1 },
+            "order": { "type": "integer" },
+            "offset": { "$ref": "#/definitions/offset" },
+            "layers": {
+              "type": "array",
+              "items": { "$ref": "#/definitions/layer" }
+            }
+          }
+        }
+      ]
+    },
+    "tileLayer": {
+      "allOf": [
+        { "$ref": "#/definitions/layerBase" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["id", "type", "name", "visible", "opacity", "order", "offset", "placements", "objects"],
+          "properties": {
+            "id": { "$ref": "#/definitions/id" },
+            "type": { "const": "tile" },
+            "name": { "type": "string", "minLength": 1 },
+            "level": { "type": "integer" },
+            "visible": { "type": "boolean" },
+            "opacity": { "type": "number", "minimum": 0, "maximum": 1 },
+            "order": { "type": "integer" },
+            "offset": { "$ref": "#/definitions/offset" },
+            "placements": {
+              "type": "array",
+              "items": { "$ref": "#/definitions/placement" }
+            },
+            "objects": {
+              "type": "array",
+              "items": { "$ref": "#/definitions/object" }
+            }
+          }
+        }
+      ]
+    },
+    "objectLayer": {
+      "allOf": [
+        { "$ref": "#/definitions/layerBase" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["id", "type", "name", "visible", "opacity", "order", "offset", "placements", "objects"],
+          "properties": {
+            "id": { "$ref": "#/definitions/id" },
+            "type": { "const": "object" },
+            "name": { "type": "string", "minLength": 1 },
+            "level": { "type": "integer" },
+            "visible": { "type": "boolean" },
+            "opacity": { "type": "number", "minimum": 0, "maximum": 1 },
+            "order": { "type": "integer" },
+            "offset": { "$ref": "#/definitions/offset" },
+            "placements": {
+              "type": "array",
+              "items": { "$ref": "#/definitions/placement" }
+            },
+            "objects": {
+              "type": "array",
+              "items": { "$ref": "#/definitions/object" }
+            }
+          }
+        }
+      ]
+    },
+    "placement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tileset", "metatile", "cell"],
+      "properties": {
+        "tileset": { "$ref": "#/definitions/id" },
+        "metatile": { "$ref": "#/definitions/id" },
+        "cell": { "$ref": "#/definitions/cell" },
+        "flip": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["x", "y"],
+          "properties": {
+            "x": { "type": "boolean" },
+            "y": { "type": "boolean" }
+          }
+        }
+      }
+    },
+    "object": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "visible", "cell"],
+      "properties": {
+        "id": { "$ref": "#/definitions/id" },
+        "name": { "type": "string", "minLength": 1 },
+        "visible": { "type": "boolean" },
+        "cell": { "$ref": "#/definitions/cell" },
+        "properties": { "type": "object" }
+      }
+    },
+    "entityInstance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "definition", "cell"],
+      "properties": {
+        "id": { "$ref": "#/definitions/id" },
+        "definition": { "$ref": "#/definitions/id" },
+        "cell": { "$ref": "#/definitions/cell" },
+        "overrides": { "type": "object" }
+      }
+    }
+  }
+}

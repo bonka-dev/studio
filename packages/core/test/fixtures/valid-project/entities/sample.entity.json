@@ -1,0 +1,12 @@
+{
+  "formatVersion": 1,
+  "type": "entity",
+  "id": "sample-entity",
+  "name": "Sample Entity",
+  "components": {
+    "sprite": {
+      "asset": "sample-sprite",
+      "animation": "idle"
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "formatVersion": 1,
+  "type": "sprite",
+  "id": "sample-sprite",
+  "source": "sprite.svg",
+  "frameSize": {
+    "width": 8,
+    "height": 8
+  },
+  "frameCount": 1,
+  "animations": {
+    "idle": {
+      "loop": true,
+      "frames": [
+        {
+          "index": 0,
+          "duration": 1
+        }
+      ]
+    }
+  },
+  "gba": {
+    "colors": 16,
+    "bpp": 4,
+    "priority": 0
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://bonka.dev/schema/project-v1.json",
+  "title": "Bonka Project v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["formatVersion", "name", "engine", "startScene", "resources"],
+  "properties": {
+    "formatVersion": { "const": 1 },
+    "name": { "type": "string", "minLength": 1 },
+    "engine": { "const": "butano" },
+    "startScene": { "$ref": "#/definitions/id" },
+    "createdWith": { "$ref": "#/definitions/createdWith" },
+    "resources": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["scenes", "tilesets", "sprites", "entities"],
+      "properties": {
+        "scenes": { "$ref": "#/definitions/resourcePaths" },
+        "tilesets": { "$ref": "#/definitions/resourcePaths" },
+        "sprites": { "$ref": "#/definitions/resourcePaths" },
+        "entities": { "$ref": "#/definitions/resourcePaths" }
+      }
+    }
+  },
+  "definitions": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+    },
+    "resourcePaths": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/portablePath" },
+      "uniqueItems": true
+    },
+    "portablePath": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!/)(?![A-Za-z]:)(?!.*\\\\)(?!.*(?:^|/)\\.\\.(?:/|$)).+$"
+    },
+    "createdWith": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["bonka"],
+      "properties": {
+        "bonka": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}

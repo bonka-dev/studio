@@ -1,0 +1,11 @@
+{
+  "name": "@bonka/editor",
+  "version": "0.3.0-dev",
+  "private": true,
+  "license": "GPL-3.0-or-later",
+  "type": "module",
+  "description": "Browser-hosted Project Format v1 authoring UI.",
+  "dependencies": {
+    "@bonka/core": "file:../../packages/core"
+  }
+}
