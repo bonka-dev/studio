@@ -7,11 +7,15 @@ services:
       dockerfile: Dockerfile
     volumes:
       - .:/workspace
+      - bonka_node_modules:/workspace/node_modules
     working_dir: /workspace
-    command: node devtools/bonka/server.js
+    command: sh -c "npm ci && npm run build --workspace @bonka/editor && node apps/editor/server.mjs"
     ports:
       - "8000:8000"
     environment:
       - HOST=0.0.0.0
       - DEVKITPRO=/opt/devkitpro
       - DEVKITARM=/opt/devkitpro/devkitARM
+
+volumes:
+  bonka_node_modules:

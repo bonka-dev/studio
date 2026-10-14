@@ -1,11 +1,64 @@
-import { openBrowserProject, saveBrowserProject, closeBrowserProject } from "./io/browser-project-loader.mjs";
-import { allocateEntityId, applyEditorState, projectToEditorState } from "./project/editor-project.mjs";
-
-globalThis.BonkaProject = Object.freeze({
+import { createBrowserProject, importPngTilesets, openBrowserProject, saveBrowserProject, closeBrowserProject } from "./io/browser-project-loader.mjs";
+import {
+    addEntityDefinition,
+    addEntityInstance,
+    addMetatile,
     allocateEntityId,
+    allocateResourceId,
+    applyEditorState,
+    createMetatileDocument,
+    createProjectDocuments,
+    createTilesetDocument,
+    ensureTileLayer,
+    inferMetatileTileSize,
+    projectToEditorState,
+    readPngDimensions,
+    removeEntityInstance,
+    toResourceId,
+} from "./project/editor-project.mjs";
+
+export {
+    addEntityDefinition,
+    addEntityInstance,
+    addMetatile,
+    allocateEntityId,
+    allocateResourceId,
     applyEditorState,
     closeBrowserProject,
+    createBrowserProject,
+    createMetatileDocument,
+    createProjectDocuments,
+    createTilesetDocument,
+    ensureTileLayer,
+    inferMetatileTileSize,
+    importPngTilesets,
     openBrowserProject,
     projectToEditorState,
+    readPngDimensions,
+    removeEntityInstance,
     saveBrowserProject,
+    toResourceId,
+};
+
+globalThis.BonkaProject = Object.freeze({
+    addEntityDefinition,
+    addEntityInstance,
+    addMetatile,
+    allocateEntityId,
+    allocateResourceId,
+    applyEditorState,
+    closeBrowserProject,
+    createBrowserProject,
+    createMetatileDocument,
+    createProjectDocuments,
+    createTilesetDocument,
+    ensureTileLayer,
+    inferMetatileTileSize,
+    importPngTilesets,
+    openBrowserProject,
+    projectToEditorState,
+    readPngDimensions,
+    removeEntityInstance,
+    saveBrowserProject,
+    toResourceId,
 });

@@ -1,0 +1,21 @@
+{
+  "formatVersion": 1,
+  "type": "metatile",
+  "id": "sample-metatile",
+  "name": "Sample Metatile",
+  "tileSize": {
+    "width": 8,
+    "height": 8
+  },
+  "columns": 1,
+  "rows": 1,
+  "visible": true,
+  "opacity": 1,
+  "tiles": [
+    {
+      "tileset": "sample-tileset",
+      "tile": 0
+    }
+  ],
+  "collision": [0]
+}

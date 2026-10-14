@@ -14,7 +14,7 @@ int main()
 
     bn::vector<bn::sprite_ptr, 32> text_sprites;
     text_generator.generate(0, -8, "Welcome", text_sprites);
-    text_generator.generate(0, 8, "- Visit bonka.dev", text_sprites);
+    text_generator.generate(0, 8, "- Visit bonka.dev -", text_sprites);
 
     while(true)
     {

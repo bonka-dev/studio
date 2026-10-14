@@ -38,7 +38,7 @@ PYTHON      	:=  python3
 SOURCES         :=  src vendor/butano/common/src
 INCLUDES        :=  include vendor/butano/common/include
 DATA        	:=
-GRAPHICS        :=  graphics vendor/butano/common/graphics
+GRAPHICS        :=  vendor/butano/common/graphics
 AUDIO       	:=  audio
 AUDIOBACKEND	:=  maxmod
 AUDIOTOOL		:=
@@ -55,13 +55,27 @@ USERLIBS    	:=
 DEFAULTLIBS 	:=
 STACKTRACE		:=
 USERBUILD   	:=
-EXTTOOL     	:=  node devtools/bonka/generate_assets.cjs --scene maps/world.json --asset world
+EXTTOOL :=
+
+ifneq ($(BUILD),$(notdir $(CURDIR)))
+.DEFAULT_GOAL := all
+
+ifneq ($(strip $(MAKECMDGOALS)),clean)
+BONKA_GENERATED := .bonka/generated.mk
+BONKA_GENERATOR_INPUTS := $(wildcard packages/target-gba/src/*.mjs packages/core/src/*.mjs packages/project-format/schemas/*.json)
+
+-include $(BONKA_GENERATED)
+
+$(BONKA_GENERATED): $(BONKA_INPUTS) $(BONKA_GENERATOR_INPUTS)
+	node packages/target-gba/src/cli.mjs --project bonka.config.json
+endif
+endif
 
 #---------------------------------------------------------------------------------------------------------------------
 # Export absolute butano path:
 #---------------------------------------------------------------------------------------------------------------------
 ifndef LIBBUTANOABS
-	export LIBBUTANOABS	:=	$(realpath $(LIBBUTANO))
+export LIBBUTANOABS	:=	$(realpath $(LIBBUTANO))
 endif
 
 #---------------------------------------------------------------------------------------------------------------------

@@ -15,17 +15,5 @@
     "tileCount": 1,
     "margin": 0,
     "spacing": 0
-  },
-  "metatiles": [
-    {
-      "id": "sample-metatile",
-      "name": "Sample Metatile",
-      "columns": 1,
-      "rows": 1,
-      "visible": true,
-      "opacity": 1,
-      "tiles": [0],
-      "collision": [0]
-    }
-  ]
+  }
 }

@@ -35,7 +35,6 @@
       },
       "placements": [
         {
-          "tileset": "sample-tileset",
           "metatile": "sample-metatile",
           "cell": {
             "x": 0,

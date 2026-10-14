@@ -194,9 +194,8 @@
     "placement": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["tileset", "metatile", "cell"],
+      "required": ["metatile", "cell"],
       "properties": {
-        "tileset": { "$ref": "#/definitions/id" },
         "metatile": { "$ref": "#/definitions/id" },
         "cell": { "$ref": "#/definitions/cell" },
         "flip": {

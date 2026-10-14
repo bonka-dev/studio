@@ -3,6 +3,7 @@ import { BonkaProjectError, validateDocument, validateProjectGraph } from "./val
 const RESOURCE_GROUPS = Object.freeze([
     ["scenes", "scene"],
     ["tilesets", "tileset"],
+    ["metatiles", "metatile"],
     ["sprites", "sprite"],
     ["entities", "entity"],
 ]);
@@ -20,6 +21,7 @@ export async function loadBonkaProjectWithAdapter(adapter) {
         manifest,
         scenes: new Map(),
         tilesets: new Map(),
+        metatiles: new Map(),
         sprites: new Map(),
         entities: new Map(),
         resourcePaths: new Map(),

@@ -1,0 +1,18 @@
+{
+  "formatVersion": 1,
+  "name": "Bonka Starter Project",
+  "engine": "butano",
+  "startScene": "scene-1",
+  "createdWith": {
+    "bonka": "0.3.0-dev"
+  },
+  "resources": {
+    "scenes": [
+      "scenes/scene-1.scene.json"
+    ],
+    "tilesets": [],
+    "metatiles": [],
+    "sprites": [],
+    "entities": []
+  }
+}

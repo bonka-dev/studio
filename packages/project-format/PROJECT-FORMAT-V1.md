@@ -54,8 +54,8 @@ Implementations MUST resolve paths within the project root.
 ### Coordinates and sizes
 
 `size` objects use `columns` and `rows` for a grid's logical dimensions.
-`grid`, `collisionGrid`, `tileSize`, and sprite `frameSize` use pixel
-dimensions named `width` and `height`.
+`grid`, `collisionGrid`, scene, tileset, and metatile `tileSize`, and sprite
+`frameSize` use pixel dimensions named `width` and `height`.
 
 Cells are zero-based `{ "x": integer, "y": integer }` coordinates. A scene
 loader MUST reject placements, objects, and entity instances that lie outside
@@ -85,11 +85,12 @@ of a project and contains:
 | `name` | Non-empty project display name. |
 | `engine` | Must be `"butano"` in v1. |
 | `startScene` | Identifier of the scene used as the project's entry scene. |
-| `resources` | Paths to the project's scene, tileset, sprite, and entity documents. |
+| `resources` | Paths to the project's scene, tileset, metatile, sprite, and entity documents. |
 | `createdWith` | Optional writer provenance. |
 
-`resources` contains the required arrays `scenes`, `tilesets`, `sprites`, and
-`entities`. A resource path MUST occur no more than once in its array.
+`resources` contains the required arrays `scenes`, `tilesets`, `metatiles`,
+`sprites`, and `entities`. A resource path MUST occur no more than once in its
+array.
 
 ## Scene document
 
@@ -125,9 +126,10 @@ that need a numeric ordering; the format does not prescribe a renderer's draw
 algorithm. Layer IDs MUST be unique throughout a scene, including nested
 groups.
 
-A placement references a scene tileset and one of its metatiles, and supplies
-a zero-based destination `cell`. It MAY supply `flip` with boolean `x` and `y`
-members. An omitted `flip` means no flip is requested.
+A placement references a standalone metatile and supplies a zero-based
+destination `cell`. It MAY supply `flip` with boolean `x` and `y` members. An
+omitted `flip` means no flip is requested. Every tileset used by the referenced
+metatile MUST occur in the scene's `tilesets` array.
 
 An object is generic editor-authored scene data. It has an ID, name, visibility,
 and cell. Its optional `properties` object is intentionally unconstrained;
@@ -152,13 +154,25 @@ A tileset validates against
 dimensions, column count, tile count, margin, and spacing used to address that
 image.
 
-Each metatile has an ID, name, positive `columns` and `rows`, visibility,
-opacity, a `tiles` array, and a `collision` array. `tiles` contains either a
-zero-based source-tile index or `null` for an empty metatile cell. `collision`
-contains `0` or `1`, where `1` marks a collision cell and `0` leaves it
-unmarked. Metatile IDs MUST be unique within a tileset. A loader MUST verify
-that `tiles` and `collision` each contain exactly `columns * rows` entries and
-that source-tile indices are below `layout.tileCount`.
+## Metatile document
+
+A metatile validates against
+[`metatile-v1.schema.json`](./schemas/metatile-v1.schema.json) and has
+`"type": "metatile"`.
+
+Each metatile has an ID, name, source-tile `tileSize`, positive `columns` and
+`rows`, visibility, opacity, a `tiles` array, and a `collision` array. Each
+`tiles` entry is either `null` for an empty metatile cell or an object containing
+a `tileset` resource ID and a zero-based `tile` index. `collision` contains `0`
+or `1`, where `1` marks a collision cell and `0` leaves it unmarked. Metatile
+IDs MUST be unique throughout the project. A loader MUST verify that `tiles`
+and `collision` each contain exactly `columns * rows` entries, every referenced
+tileset exists and has the same `tileSize` as the metatile, and each tile index
+is below the referenced tileset's `layout.tileCount`.
+
+When placed in a scene, a metatile's composed pixel dimensions MUST match the
+scene's `tileSize`: `columns * tileSize.width` equals the scene tile width and
+`rows * tileSize.height` equals the scene tile height.
 
 ## Sprite document
 
@@ -201,15 +215,20 @@ After individual schema validation, a loader MUST verify all of the following:
 
 1. Every path in `project.resources` resolves to a document of its corresponding
    type.
-2. Resource document IDs are unique within their resource type.
+2. Resource document IDs are unique within their resource type, including
+   globally unique metatile IDs.
 3. `project.startScene` resolves to one listed scene.
-4. A scene's `tilesets` references resolve to listed tilesets, and every
-   placement references a tileset listed by that scene and a metatile from it.
+4. A scene's `tilesets` references resolve to listed tilesets, every placement
+   resolves to a listed metatile, and every tileset used by that metatile is
+   listed by the scene.
 5. Each scene entity instance resolves to a listed entity definition.
 6. An entity `sprite.asset` resolves to a listed sprite, and
    `sprite.animation` resolves to an animation in that sprite.
-7. Cells, metatile arrays, and animation frame indices meet the bounds defined
+7. Metatile tile references resolve to listed tilesets, use matching tile
+   dimensions, and stay below their tileset's tile count.
+8. Cells, metatile arrays, and animation frame indices meet the bounds defined
    in this specification.
+9. A placed metatile's composed pixel dimensions match the scene's `tileSize`.
 
 These checks belong to a loader or validator implementation, not to the
 Apache-2.0 format package's schemas.

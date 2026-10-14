@@ -4,7 +4,7 @@
   "title": "Bonka Tileset v1",
   "type": "object",
   "additionalProperties": false,
-  "required": ["formatVersion", "type", "id", "name", "source", "tileSize", "layout", "metatiles"],
+  "required": ["formatVersion", "type", "id", "name", "source", "tileSize", "layout"],
   "properties": {
     "formatVersion": { "const": 1 },
     "type": { "const": "tileset" },
@@ -25,10 +25,6 @@
         "margin": { "type": "integer", "minimum": 0 },
         "spacing": { "type": "integer", "minimum": 0 }
       }
-    },
-    "metatiles": {
-      "type": "array",
-      "items": { "$ref": "#/definitions/metatile" }
     }
   },
   "definitions": {
@@ -56,32 +52,6 @@
       "properties": {
         "width": { "type": "integer", "minimum": 1 },
         "height": { "type": "integer", "minimum": 1 }
-      }
-    },
-    "metatile": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["id", "name", "columns", "rows", "visible", "opacity", "tiles", "collision"],
-      "properties": {
-        "id": { "$ref": "#/definitions/id" },
-        "name": { "type": "string", "minLength": 1 },
-        "columns": { "type": "integer", "minimum": 1 },
-        "rows": { "type": "integer", "minimum": 1 },
-        "visible": { "type": "boolean" },
-        "opacity": { "type": "number", "minimum": 0, "maximum": 1 },
-        "tiles": {
-          "type": "array",
-          "items": {
-            "anyOf": [
-              { "type": "null" },
-              { "type": "integer", "minimum": 0 }
-            ]
-          }
-        },
-        "collision": {
-          "type": "array",
-          "items": { "enum": [0, 1] }
-        }
       }
     }
   }

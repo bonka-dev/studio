@@ -7,6 +7,7 @@ build/
 *.elf
 *.o
 *.sav
+apps/editor/dist/
 
 # External tools
 tools/

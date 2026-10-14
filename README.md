@@ -73,13 +73,12 @@ Project Format v1 development is organized into explicit package boundaries:
 - `apps/editor`: GPL-licensed browser authoring application.
 - `packages/core`: GPL-licensed project loading and validation.
 - `packages/project-format`: Apache-licensed Project Format schemas and specification.
-
-The legacy editor and generator below `devtools/bonka` remain part of the
-historical v0.1 and v0.2 releases while their v1 replacements are developed in
-these packages.
+- `packages/target-gba`: GPL-licensed Project-v1 to Butano generator.
 
 ## License
 
 Bonka is licensed under the GNU General Public License v3.0 or later. See [LICENSE](./LICENSE).
 
-This repository includes a minimal public GBA welcome screen. It does not include a game, game logic, maps, sprites, audio, or other project-specific assets.
+This repository includes an asset-free Project-v1 starter project and a
+minimal public GBA text welcome screen. It does not include private game code,
+maps, sprites, audio or other project-specific assets.

@@ -1,0 +1,19 @@
+{
+  "name": "@bonka/target-gba",
+  "version": "0.3.0-dev",
+  "private": true,
+  "license": "GPL-3.0-or-later",
+  "type": "module",
+  "description": "Project Format v1 generator for Butano build inputs.",
+  "exports": {
+    ".": "./src/index.mjs"
+  },
+  "scripts": {
+    "test": "node --test"
+  },
+  "dependencies": {
+    "@nktkas/bmp": "1.3.0",
+    "@bonka/core": "file:../core",
+    "pngjs": "7.0.0"
+  }
+}

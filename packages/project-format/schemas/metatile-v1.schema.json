@@ -1,0 +1,64 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://bonka.dev/schema/metatile-v1.json",
+  "title": "Bonka Metatile v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["formatVersion", "type", "id", "name", "tileSize", "columns", "rows", "visible", "opacity", "tiles", "collision"],
+  "properties": {
+    "formatVersion": { "const": 1 },
+    "type": { "const": "metatile" },
+    "id": { "$ref": "#/definitions/id" },
+    "name": { "type": "string", "minLength": 1 },
+    "createdWith": { "$ref": "#/definitions/createdWith" },
+    "tileSize": { "$ref": "#/definitions/size" },
+    "columns": { "type": "integer", "minimum": 1 },
+    "rows": { "type": "integer", "minimum": 1 },
+    "visible": { "type": "boolean" },
+    "opacity": { "type": "number", "minimum": 0, "maximum": 1 },
+    "tiles": {
+      "type": "array",
+      "items": {
+        "anyOf": [
+          { "type": "null" },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["tileset", "tile"],
+            "properties": {
+              "tileset": { "$ref": "#/definitions/id" },
+              "tile": { "type": "integer", "minimum": 0 }
+            }
+          }
+        ]
+      }
+    },
+    "collision": {
+      "type": "array",
+      "items": { "enum": [0, 1] }
+    }
+  },
+  "definitions": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+    },
+    "createdWith": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["bonka"],
+      "properties": {
+        "bonka": { "type": "string", "minLength": 1 }
+      }
+    },
+    "size": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["width", "height"],
+      "properties": {
+        "width": { "type": "integer", "minimum": 1 },
+        "height": { "type": "integer", "minimum": 1 }
+      }
+    }
+  }
+}

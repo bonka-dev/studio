@@ -1,0 +1,47 @@
+{
+  "formatVersion": 1,
+  "type": "scene",
+  "id": "scene-1",
+  "name": "Scene 1",
+  "orientation": "isometric",
+  "size": {
+    "columns": 32,
+    "rows": 64
+  },
+  "grid": {
+    "width": 16,
+    "height": 8
+  },
+  "collisionGrid": {
+    "width": 16,
+    "height": 8
+  },
+  "tileSize": {
+    "width": 32,
+    "height": 32
+  },
+  "tilesets": [],
+  "layers": [
+    {
+      "id": "layer-0",
+      "type": "tile",
+      "name": "Ground",
+      "visible": true,
+      "opacity": 1,
+      "order": 0,
+      "offset": {
+        "x": 0,
+        "y": 0
+      },
+      "placements": [],
+      "objects": []
+    }
+  ],
+  "entities": [],
+  "editor": {
+    "nextLayerId": 1,
+    "nextObjectId": 0,
+    "nextTilesetId": 0,
+    "nextMetatileId": 0
+  }
+}

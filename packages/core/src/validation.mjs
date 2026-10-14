@@ -1,6 +1,7 @@
 import Ajv from "ajv";
 
 import entitySchema from "@bonka/project-format/schemas/entity-v1.schema.json" with { type: "json" };
+import metatileSchema from "@bonka/project-format/schemas/metatile-v1.schema.json" with { type: "json" };
 import projectSchema from "@bonka/project-format/schemas/project-v1.schema.json" with { type: "json" };
 import sceneSchema from "@bonka/project-format/schemas/scene-v1.schema.json" with { type: "json" };
 import spriteSchema from "@bonka/project-format/schemas/sprite-v1.schema.json" with { type: "json" };
@@ -10,6 +11,7 @@ const ajv = new Ajv({ allErrors: true, strict: true });
 
 const validators = Object.freeze({
     project: ajv.compile(projectSchema),
+    metatile: ajv.compile(metatileSchema),
     scene: ajv.compile(sceneSchema),
     sprite: ajv.compile(spriteSchema),
     tileset: ajv.compile(tilesetSchema),
@@ -64,31 +66,6 @@ function requireResource(resources, id, path, type) {
 
 function validateTilesets(tilesets) {
     for(const [tilesetId, tileset] of tilesets) {
-        const metatileIds = new Set();
-        for(const [index, metatile] of tileset.metatiles.entries()) {
-            const path = `tilesets/${tilesetId}/metatiles/${index}`;
-            if(metatileIds.has(metatile.id)) {
-                projectError(`${path}/id`, `duplicate metatile ID '${metatile.id}'`);
-            }
-            metatileIds.add(metatile.id);
-
-            const expectedLength = metatile.columns * metatile.rows;
-            if(metatile.tiles.length !== expectedLength) {
-                projectError(`${path}/tiles`, `expected ${expectedLength} entries, received ${metatile.tiles.length}`);
-            }
-            if(metatile.collision.length !== expectedLength) {
-                projectError(`${path}/collision`, `expected ${expectedLength} entries, received ${metatile.collision.length}`);
-            }
-            for(const [tileIndex, tile] of metatile.tiles.entries()) {
-                if(tile !== null && tile >= tileset.layout.tileCount) {
-                    projectError(
-                        `${path}/tiles/${tileIndex}`,
-                        `tile index ${tile} exceeds tile count ${tileset.layout.tileCount}`
-                    );
-                }
-            }
-        }
-
         const horizontalPixels = tileset.layout.imageWidth - 2 * tileset.layout.margin + tileset.layout.spacing;
         const verticalPixels = tileset.layout.imageHeight - 2 * tileset.layout.margin + tileset.layout.spacing;
         const expectedColumns = Math.floor(horizontalPixels / (tileset.tileSize.width + tileset.layout.spacing));
@@ -104,6 +81,39 @@ function validateTilesets(tilesets) {
                 `tilesets/${tilesetId}/layout/tileCount`,
                 `tile count ${tileset.layout.tileCount} exceeds image capacity ${expectedColumns * expectedRows}`
             );
+        }
+    }
+}
+
+function validateMetatiles(metatiles, tilesets) {
+    for(const [metatileId, metatile] of metatiles) {
+        const path = `metatiles/${metatileId}`;
+        const expectedLength = metatile.columns * metatile.rows;
+        if(metatile.tiles.length !== expectedLength) {
+            projectError(`${path}/tiles`, `expected ${expectedLength} entries, received ${metatile.tiles.length}`);
+        }
+        if(metatile.collision.length !== expectedLength) {
+            projectError(`${path}/collision`, `expected ${expectedLength} entries, received ${metatile.collision.length}`);
+        }
+        for(const [index, tile] of metatile.tiles.entries()) {
+            if(tile === null) {
+                continue;
+            }
+            const tileset = requireResource(tilesets, tile.tileset, `${path}/tiles/${index}/tileset`, "tileset");
+            if(tileset.tileSize.width !== metatile.tileSize.width
+                || tileset.tileSize.height !== metatile.tileSize.height) {
+                projectError(
+                    `${path}/tiles/${index}/tileset`,
+                    `tileset '${tileset.id}' tile size ${tileset.tileSize.width}x${tileset.tileSize.height} `
+                        + `does not match metatile tile size ${metatile.tileSize.width}x${metatile.tileSize.height}`
+                );
+            }
+            if(tile.tile >= tileset.layout.tileCount) {
+                projectError(
+                    `${path}/tiles/${index}/tile`,
+                    `tile index ${tile.tile} exceeds tile count ${tileset.layout.tileCount}`
+                );
+            }
         }
     }
 }
@@ -145,7 +155,7 @@ function validateSprites(sprites) {
     }
 }
 
-function validateSceneLayers(scene, tilesets) {
+function validateSceneLayers(scene, metatiles) {
     const layerIds = new Set();
     const objectIds = new Set();
 
@@ -165,12 +175,28 @@ function validateSceneLayers(scene, tilesets) {
             if(placement.cell.x >= scene.size.columns || placement.cell.y >= scene.size.rows) {
                 projectError(`${placementPath}/cell`, "placement is outside scene bounds");
             }
-            if(! scene.tilesets.includes(placement.tileset)) {
-                projectError(`${placementPath}/tileset`, `tileset '${placement.tileset}' is not declared by the scene`);
+            const metatile = requireResource(metatiles, placement.metatile, `${placementPath}/metatile`, "metatile");
+            const metatileWidth = metatile.columns * metatile.tileSize.width;
+            const metatileHeight = metatile.rows * metatile.tileSize.height;
+            if(metatileWidth !== scene.tileSize.width) {
+                projectError(
+                    `${placementPath}/metatile`,
+                    `metatile '${metatile.id}' width ${metatileWidth} does not match scene tile width ${scene.tileSize.width}`
+                );
             }
-            const tileset = requireResource(tilesets, placement.tileset, `${placementPath}/tileset`, "tileset");
-            if(! tileset.metatiles.some(metatile => metatile.id === placement.metatile)) {
-                projectError(`${placementPath}/metatile`, `unknown metatile '${placement.metatile}'`);
+            if(metatileHeight !== scene.tileSize.height) {
+                projectError(
+                    `${placementPath}/metatile`,
+                    `metatile '${metatile.id}' height ${metatileHeight} does not match scene tile height ${scene.tileSize.height}`
+                );
+            }
+            for(const tile of metatile.tiles) {
+                if(tile !== null && ! scene.tilesets.includes(tile.tileset)) {
+                    projectError(
+                        `${placementPath}/metatile`,
+                        `metatile '${metatile.id}' uses tileset '${tile.tileset}' not declared by the scene`
+                    );
+                }
             }
         }
 
@@ -189,12 +215,12 @@ function validateSceneLayers(scene, tilesets) {
     scene.layers.forEach((layer, index) => validateLayer(layer, `scenes/${scene.id}/layers/${index}`));
 }
 
-function validateScene(scene, tilesets, entities) {
+function validateScene(scene, tilesets, metatiles, entities) {
     for(const [index, tilesetId] of scene.tilesets.entries()) {
         requireResource(tilesets, tilesetId, `scenes/${scene.id}/tilesets/${index}`, "tileset");
     }
 
-    validateSceneLayers(scene, tilesets);
+    validateSceneLayers(scene, metatiles);
 
     const instanceIds = new Set();
     for(const [index, instance] of scene.entities.entries()) {
@@ -213,11 +239,12 @@ function validateScene(scene, tilesets, entities) {
 export function validateProjectGraph(project) {
     requireResource(project.scenes, project.manifest.startScene, "project/startScene", "scene");
     validateTilesets(project.tilesets);
+    validateMetatiles(project.metatiles, project.tilesets);
     validateSprites(project.sprites);
     validateEntityDefinitions(project.entities, project.sprites);
 
     for(const scene of project.scenes.values()) {
-        validateScene(scene, project.tilesets, project.entities);
+        validateScene(scene, project.tilesets, project.metatiles, project.entities);
     }
 
     return project;
@@ -225,7 +252,7 @@ export function validateProjectGraph(project) {
 
 export function validateProjectDocuments(project) {
     validateDocument("project", project.manifest, project.manifestPath);
-    for(const [group, kind] of [["scenes", "scene"], ["tilesets", "tileset"], ["sprites", "sprite"], ["entities", "entity"]]) {
+    for(const [group, kind] of [["scenes", "scene"], ["tilesets", "tileset"], ["metatiles", "metatile"], ["sprites", "sprite"], ["entities", "entity"]]) {
         for(const [id, document] of project[group]) {
             validateDocument(kind, document, project.resourcePaths.get(`${kind}:${id}`) ?? `${group}/${id}`);
         }
