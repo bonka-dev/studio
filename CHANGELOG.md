@@ -1,5 +1,36 @@
 # Changelog
 
+## v0.3.0
+
+### 🚀 Features
+
+- **project-format:** Add Project Format v1 schemas, multi-file loading and cross-resource validation.
+- **editor:** Add browser-hosted project create, open, save and close workflows.
+- **tileset:** Import PNG tilesets and edit standalone metatiles across multiple tilesets.
+- **scene:** Add isometric layer painting, groups, objects, generic entities and undo/redo history.
+- **gba:** Add the Project-v1 GBA generator with deduplicated 8x8 BPP8 tile banks and generated map headers.
+- **starter:** Add an asset-free Project Format v1 starter project.
+
+### 🐛 Bug Fixes
+
+- **gba:** Correct BPP8 map tile IDs and 32x32 screenblock map ordering.
+- **gba:** Preserve whole-metatile flips, visibility and opacity in generated scene output.
+- **editor:** Improve isometric brush snapping, interpolation, canvas ordering and visual markers.
+
+### 📖 Documentation
+
+- Document Project Format v1, the dependency architecture, generated-output policy, third-party notices and future plugin licensing.
+
+### 📦 Build
+
+- Generate disposable Project-v1 Butano inputs exclusively below `.bonka/`.
+- Add reproducible editor build and browser acceptance coverage through Docker.
+
+### 🏡 Maintenance
+
+- Replace the legacy `devtools/bonka` implementation with the package-based editor, Core, Project Format and GBA target layout.
+- Remove obsolete root graphics and map placeholders.
+
 ## v0.2.0
 
 ### 🚀 Features
