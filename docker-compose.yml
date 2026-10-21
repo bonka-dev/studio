@@ -7,15 +7,23 @@ services:
       dockerfile: Dockerfile
     volumes:
       - .:/workspace
-      - bonka_node_modules:/workspace/node_modules
+      - bonka_gba_node_modules:/workspace/node_modules
     working_dir: /workspace
-    command: sh -c "npm ci && npm run build --workspace @bonka/editor && node apps/editor/server.mjs"
-    ports:
-      - "8000:8000"
+    command: sh -c "npm ci --ignore-scripts && tail -f /dev/null"
     environment:
-      - HOST=0.0.0.0
       - DEVKITPRO=/opt/devkitpro
       - DEVKITARM=/opt/devkitpro/devkitARM
+      - BUTANO_ROOT=../opt/butano
 
+  editor:
+    image: node:24-bookworm-slim
+    volumes:
+      - .:/workspace
+      - bonka_editor_node_modules:/workspace/node_modules
+    working_dir: /workspace
+    command: sh -c "npm ci && npm run dev --workspace @bonka/editor -- --host 0.0.0.0 --port 8000"
+    ports:
+      - "8000:8000"
 volumes:
-  bonka_node_modules:
+  bonka_gba_node_modules:
+  bonka_editor_node_modules:

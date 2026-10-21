@@ -37,6 +37,9 @@ body {
     background-size: 24px 24px, 24px 24px, auto;
 }
 
+/* Nuxt adds a root wrapper; the editor shell must remain a direct body flex item. */
+#__nuxt { display: contents; }
+
 [hidden] {
     display: none !important;
 }
@@ -187,6 +190,39 @@ input[type="range"] {
     min-width: 140px;
 }
 
+.hub-permissions {
+    margin-top: 24px;
+    padding: 14px 16px;
+    border: 1px solid rgba(128, 191, 184, .26);
+    border-left: 3px solid var(--cyan);
+    background: rgba(8, 14, 14, .38);
+    color: #bbb5a7;
+    font-size: 11px;
+    line-height: 1.6;
+}
+
+.hub-permissions h2 {
+    margin: 0 0 6px;
+    color: #e2ded2;
+    font-size: 11px;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+
+.hub-permissions p {
+    margin: 6px 0 0;
+}
+
+.hub-permissions-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px 14px;
+}
+
+.hub-permissions a {
+    color: var(--cyan);
+}
+
 .hub-status {
     min-height: 1.5em;
     margin: 22px 0 0;
@@ -240,6 +276,42 @@ input[type="range"] {
     font-size: clamp(20px, 3vw, 31px);
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+.dirty-marker {
+    margin-right: 6px;
+    color: var(--cyan);
+}
+
+.header-saved-badge {
+    flex: 0 0 auto;
+    border: 1px solid var(--cyan);
+    border-radius: 999px;
+    padding: 2px 6px;
+    color: var(--cyan);
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: .08em;
+    opacity: 0;
+    text-transform: uppercase;
+    animation: saved-badge-fade 2.4s ease-out forwards;
+}
+
+.header-saving-badge {
+    flex: 0 0 auto;
+    border: 1px solid var(--gold);
+    border-radius: 999px;
+    padding: 2px 6px;
+    color: var(--gold);
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+}
+
+@keyframes saved-badge-fade {
+    0%, 60% { opacity: 1; }
+    100% { opacity: 0; }
 }
 
 .header-actions {
@@ -372,6 +444,10 @@ input[type="range"] {
 
 .panel-content {
     padding: 12px;
+}
+
+.tileset-panel > .panel-content {
+    padding: 0;
 }
 
 .compact-content {
@@ -796,7 +872,6 @@ input[type="range"] {
 .layer-list {
     display: grid;
     gap: 5px;
-    min-height: 90px;
     max-height: 260px;
     margin-bottom: 8px;
     overflow-y: auto;

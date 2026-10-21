@@ -15,5 +15,5 @@ tools/
 # Node asset-generator deps (installed in Docker image only, never in the repo)
 *node_modules/
 
-# Generated assets from devtools/bonka
+# Generated Project Format and Butano build output
 .bonka/

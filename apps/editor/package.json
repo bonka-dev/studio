@@ -1,20 +1,22 @@
 {
   "name": "@bonka/editor",
-  "version": "0.3.0-dev",
+  "version": "0.4.0-dev",
+  "type": "module",
   "private": true,
   "license": "GPL-3.0-or-later",
-  "type": "module",
-  "description": "Browser-hosted Project Format v1 authoring UI.",
+  "description": "Nuxt migration workspace for the Bonka browser editor.",
   "scripts": {
-    "build": "esbuild src/browser-main.mjs --bundle --format=iife --sourcemap --outfile=dist/editor.js",
-    "start": "node server.mjs",
-    "test": "node --test",
-    "test:browser": "node scripts/browser-acceptance.mjs"
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare"
   },
   "dependencies": {
-    "@bonka/core": "file:../../packages/core"
-  },
-  "devDependencies": {
-    "esbuild": "^0.25.0"
+    "@bonka/core": "file:../../packages/core",
+    "@bonka/project-format": "file:../../packages/project-format",
+    "nuxt": "^4.6.2",
+    "vue": "^3.5.44",
+    "vue-router": "^5.4.0"
   }
 }
