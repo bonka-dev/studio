@@ -1,0 +1,42 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://bonka.dev/schema/prefab-v1.json",
+  "title": "Bonka Map Prefab v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["formatVersion", "type", "id", "name", "columns", "rows", "placements"],
+  "properties": {
+    "formatVersion": { "const": 1 },
+    "type": { "const": "prefab" },
+    "id": { "$ref": "#/$defs/id" },
+    "name": { "type": "string", "minLength": 1 },
+    "columns": { "type": "integer", "minimum": 1 },
+    "rows": { "type": "integer", "minimum": 1 },
+    "placements": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["metatile", "cell"],
+        "properties": {
+          "metatile": { "$ref": "#/$defs/id" },
+          "cell": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["x", "y"],
+            "properties": {
+              "x": { "type": "integer", "minimum": 0 },
+              "y": { "type": "integer", "minimum": 0 }
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+    }
+  }
+}

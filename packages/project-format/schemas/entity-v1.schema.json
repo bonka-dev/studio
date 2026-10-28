@@ -38,11 +38,22 @@
     "spriteComponent": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["asset", "animation"],
+      "required": ["asset"],
       "properties": {
         "asset": { "$ref": "#/definitions/id" },
-        "animation": { "$ref": "#/definitions/id" }
-      }
+        "animation": { "$ref": "#/definitions/id" },
+        "directionalSet": { "$ref": "#/definitions/id" }
+      },
+      "oneOf": [
+        {
+          "required": ["animation"],
+          "properties": { "animation": { "$ref": "#/definitions/id" } }
+        },
+        {
+          "required": ["directionalSet"],
+          "properties": { "directionalSet": { "$ref": "#/definitions/id" } }
+        }
+      ]
     },
     "colliderComponent": {
       "type": "object",
@@ -59,7 +70,22 @@
       "additionalProperties": false,
       "required": ["id"],
       "properties": {
-        "id": { "$ref": "#/definitions/id" }
+        "id": { "$ref": "#/definitions/id" },
+        "inputActions": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/definitions/id" }
+        },
+        "parameters": {
+          "type": "object",
+          "additionalProperties": {
+            "oneOf": [
+              { "type": "string" },
+              { "type": "number" },
+              { "type": "boolean" }
+            ]
+          }
+        }
       }
     }
   }

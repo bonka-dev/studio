@@ -229,6 +229,7 @@
         "id": { "$ref": "#/definitions/id" },
         "definition": { "$ref": "#/definitions/id" },
         "cell": { "$ref": "#/definitions/cell" },
+        "facingAngle": { "type": "number", "minimum": 0, "exclusiveMaximum": 360 },
         "overrides": { "type": "object" }
       }
     }

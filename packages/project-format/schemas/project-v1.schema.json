@@ -10,6 +10,7 @@
     "name": { "type": "string", "minLength": 1 },
     "engine": { "const": "butano" },
     "startScene": { "$ref": "#/definitions/id" },
+    "inputMap": { "$ref": "#/definitions/id" },
     "createdWith": { "$ref": "#/definitions/createdWith" },
     "resources": {
       "type": "object",
@@ -19,8 +20,10 @@
         "scenes": { "$ref": "#/definitions/resourcePaths" },
         "tilesets": { "$ref": "#/definitions/resourcePaths" },
         "metatiles": { "$ref": "#/definitions/resourcePaths" },
+        "prefabs": { "$ref": "#/definitions/resourcePaths" },
         "sprites": { "$ref": "#/definitions/resourcePaths" },
-        "entities": { "$ref": "#/definitions/resourcePaths" }
+        "entities": { "$ref": "#/definitions/resourcePaths" },
+        "inputMaps": { "$ref": "#/definitions/resourcePaths" }
       }
     }
   },
