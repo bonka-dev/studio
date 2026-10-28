@@ -66,6 +66,83 @@ async function encodeBitmap(image) {
     return encode({ width: image.width, height: image.height, channels: 3, data }, { bitsPerPixel: 8, palette });
 }
 
+function spriteTransparencyKey(opaqueColors) {
+    const candidates = [
+        [255, 0, 255],
+        [0, 255, 255],
+    ];
+    for(const color of candidates) {
+        if(! opaqueColors.has(color.join(","))) {
+            return color;
+        }
+    }
+    for(let red = 0; red < 256; ++red) {
+        for(let green = 0; green < 256; ++green) {
+            for(let blue = 0; blue < 256; ++blue) {
+                const color = [red, green, blue];
+                if(! opaqueColors.has(color.join(","))) {
+                    return color;
+                }
+            }
+        }
+    }
+    throw new BonkaProjectError("sprite transparency key: no unused RGB color is available");
+}
+
+function encodeSpriteBitmap(image, maxColors) {
+    const opaqueColors = new Map();
+    for(let pixel = 0; pixel < image.width * image.height; ++pixel) {
+        const source = pixel * 4;
+        if(! image.data[source + 3]) {
+            continue;
+        }
+        const color = [image.data[source], image.data[source + 1], image.data[source + 2]];
+        opaqueColors.set(color.join(","), color);
+    }
+    if(opaqueColors.size > maxColors - 1) {
+        throw new BonkaProjectError(`sprite source uses ${opaqueColors.size} opaque colors, exceeding the ${maxColors - 1} available colors after reserving transparency`);
+    }
+
+    const palette = [spriteTransparencyKey(opaqueColors), ...opaqueColors.values()];
+    const indices = new Map(palette.map((color, index) => [color.join(","), index]));
+    // Grit requires a complete palette for 8-bit BMP inputs with more than 16 colors.
+    while(palette.length < 256) {
+        palette.push(palette[0]);
+    }
+    const rowStride = Math.ceil(image.width / 4) * 4;
+    const pixelData = Buffer.alloc(rowStride * image.height);
+    for(let y = 0; y < image.height; ++y) {
+        for(let x = 0; x < image.width; ++x) {
+            const source = (y * image.width + x) * 4;
+            if(image.data[source + 3]) {
+                pixelData[(image.height - 1 - y) * rowStride + x] = indices.get(`${image.data[source]},${image.data[source + 1]},${image.data[source + 2]}`);
+            }
+        }
+    }
+
+    const headerSize = 14 + 40;
+    const paletteSize = palette.length * 4;
+    const output = Buffer.alloc(headerSize + paletteSize + pixelData.length);
+    output.write("BM", 0, "ascii");
+    output.writeUInt32LE(output.length, 2);
+    output.writeUInt32LE(headerSize + paletteSize, 10);
+    output.writeUInt32LE(40, 14);
+    output.writeInt32LE(image.width, 18);
+    output.writeInt32LE(image.height, 22);
+    output.writeUInt16LE(1, 26);
+    output.writeUInt16LE(8, 28);
+    output.writeUInt32LE(pixelData.length, 34);
+    output.writeUInt32LE(palette.length, 46);
+    for(const [index, [red, green, blue]] of palette.entries()) {
+        const offset = headerSize + index * 4;
+        output[offset] = blue;
+        output[offset + 1] = green;
+        output[offset + 2] = red;
+    }
+    pixelData.copy(output, headerSize + paletteSize);
+    return output;
+}
+
 async function loadTilesetImage(project, tileset) {
     const sourcePath = project.sourcePaths.get(`tileset:${tileset.id}`);
     if(path.extname(sourcePath).toLowerCase() !== ".png") {
@@ -92,6 +169,234 @@ async function loadTilesets(project) {
         images.set(id, await loadTilesetImage(project, tileset));
     }
     return images;
+}
+
+async function loadSpriteImage(project, sprite) {
+    const sourcePath = project.sourcePaths.get(`sprite:${sprite.id}`);
+    if(path.extname(sourcePath).toLowerCase() !== ".png") {
+        throw new BonkaProjectError(`sprites/${sprite.id}/source: GBA generation currently requires a PNG source image`);
+    }
+    let image;
+    try {
+        image = PNG.sync.read(await readFile(sourcePath));
+    } catch(error) {
+        throw new BonkaProjectError(`sprites/${sprite.id}/source: unable to decode PNG: ${error.message}`);
+    }
+    if(sprite.layout && (image.width !== sprite.layout.imageWidth || image.height !== sprite.layout.imageHeight)) {
+        throw new BonkaProjectError(
+            `sprites/${sprite.id}/source: decoded image is ${image.width}x${image.height}, expected ${sprite.layout.imageWidth}x${sprite.layout.imageHeight}`
+        );
+    }
+    return image;
+}
+
+function spriteLayout(sprite, animation = null) {
+    return animation?.layout ?? sprite.layout ?? {
+        imageWidth: sprite.frameSize.width * sprite.frameCount,
+        imageHeight: sprite.frameSize.height,
+        columns: sprite.frameCount,
+        rows: 1,
+        margin: { x: 0, y: 0 },
+        spacing: { x: 0, y: 0 },
+    };
+}
+
+function extractSpriteAnimation(sprite, image, animation) {
+    const layout = spriteLayout(sprite, animation);
+    const output = {
+        width: sprite.frameSize.width * animation.frames.length,
+        height: sprite.frameSize.height,
+        data: Buffer.alloc(sprite.frameSize.width * animation.frames.length * sprite.frameSize.height * 4),
+    };
+    const colors = new Set();
+    for(const [outputFrame, frame] of animation.frames.entries()) {
+        const sourceX = layout.margin.x + (frame.index % layout.columns) * (sprite.frameSize.width + layout.spacing.x);
+        const sourceY = layout.margin.y + Math.floor(frame.index / layout.columns) * (sprite.frameSize.height + layout.spacing.y);
+        for(let y = 0; y < sprite.frameSize.height; ++y) {
+            for(let x = 0; x < sprite.frameSize.width; ++x) {
+                const source = ((sourceY + y) * image.width + sourceX + x) * 4;
+                const target = (y * output.width + outputFrame * sprite.frameSize.width + x) * 4;
+                image.data.copy(output.data, target, source, source + 4);
+                if(image.data[source + 3]) {
+                    colors.add(`${image.data[source]},${image.data[source + 1]},${image.data[source + 2]}`);
+                }
+            }
+        }
+    }
+    if(colors.size > sprite.gba.colors - 1) {
+        throw new BonkaProjectError(`sprites/${sprite.id}/source: uses ${colors.size} opaque colors, exceeding ${sprite.gba.colors - 1} available colors after reserving transparency`);
+    }
+    return output;
+}
+
+function spriteOutputName(sprite, animationId) {
+    return `bonka_sprite_${sprite.id.replaceAll("-", "_")}_${animationId.replaceAll("-", "_")}`;
+}
+
+function spriteRuntimeName(sprite) {
+    return `bonka_sprite_${sprite.id.replaceAll("-", "_")}_clips`;
+}
+
+function cppString(value) {
+    let result = "\"";
+    for(const byte of Buffer.from(value, "utf8")) {
+        if(byte === 34) result += "\\\"";
+        else if(byte === 92) result += "\\\\";
+        else if(byte >= 32 && byte <= 126) result += String.fromCharCode(byte);
+        else result += `\\${byte.toString(8).padStart(3, "0")}`;
+    }
+    return `${result}\"`;
+}
+
+function fixedNumberData(value, source) {
+    const scaled = value * 4096;
+    const result = scaled < 0 ? -Math.round(-scaled) : Math.round(scaled);
+    if(! Number.isSafeInteger(result) || result < -2147483648 || result > 2147483647) {
+        throw new BonkaProjectError(`${source}: number ${value} is outside the GBA Q20.12 fixed-point range`);
+    }
+    return result;
+}
+
+function spriteHeader(sprite, animationId) {
+    const name = spriteOutputName(sprite, animationId);
+    const guard = `${name.toUpperCase()}_H`;
+    const layout = spriteLayout(sprite, sprite.animations[animationId]);
+    return [
+        "// Generated by @bonka/target-gba. Do not edit.",
+        `#ifndef ${guard}`,
+        `#define ${guard}`,
+        "",
+        `namespace bonka::generated::${name} {`,
+        `constexpr int FRAME_WIDTH = ${sprite.frameSize.width};`,
+        `constexpr int FRAME_HEIGHT = ${sprite.frameSize.height};`,
+        `constexpr int FRAME_COUNT = ${sprite.frameCount};`,
+        `constexpr int COLUMNS = ${layout.columns};`,
+        `constexpr int ROWS = ${layout.rows};`,
+        "}",
+        "",
+        "#endif",
+        "",
+    ].join("\n");
+}
+
+function spriteRuntimeHeader(sprite, animationIds) {
+    const name = spriteRuntimeName(sprite);
+    const guard = `${name.toUpperCase()}_H`;
+    return [
+        "// Generated by @bonka/target-gba. Do not edit.",
+        `#ifndef ${guard}`,
+        `#define ${guard}`,
+        "",
+        "#include \"bonka/gba/sprite_runtime.h\"",
+        ...animationIds.map(animationId => `#include \"bn_sprite_items_${spriteOutputName(sprite, animationId)}.h\"`),
+        "",
+        `namespace bonka::generated::${name} {`,
+        "",
+        ...animationIds.flatMap(animationId => {
+            const animation = sprite.animations[animationId];
+            const clip = `clip_${animationId.replaceAll("-", "_")}`;
+            const tileBytes = sprite.frameSize.width * sprite.frameSize.height * animation.frames.length * (sprite.gba.bpp === 4 ? .5 : 1);
+            return [
+                `inline constexpr int ${clip}_durations[] = { ${animation.frames.map(frame => frame.duration).join(", ")} };`,
+                `inline const bonka::gba::sprite_clip ${clip}(bn::sprite_items::${spriteOutputName(sprite, animationId)}, ${clip}_durations, ${animation.frames.length}, ${animation.loop}, ${tileBytes});`,
+                "",
+            ];
+        }),
+        ...sprite.directionalSets?.flatMap(set => {
+            const name = `directional_set_${set.id.replaceAll("-", "_")}`;
+            return [
+                `inline const bonka::gba::directional_sprite_variant ${name}_variants[] = {`,
+                ...set.variants.map(variant => `    { ${variant.angle}, clip_${variant.animation.replaceAll("-", "_")} },`),
+                "};",
+                `inline const bonka::gba::directional_sprite_set ${name}(${name}_variants, ${set.variants.length});`,
+                "",
+            ];
+        }) ?? [],
+        `inline constexpr int tile_bytes = ${animationIds.reduce((total, animationId) => total + sprite.frameSize.width * sprite.frameSize.height * sprite.animations[animationId].frames.length * (sprite.gba.bpp === 4 ? .5 : 1), 0)};`,
+        "",
+        "}",
+        "",
+        "#endif",
+        "",
+    ].join("\n");
+}
+
+function spriteRegistryHeader(project) {
+    const entries = [...project.sprites.values()].flatMap(sprite =>
+        (sprite.directionalSets ?? []).map(set => ({
+            assetId: sprite.id,
+            setId: set.id,
+            runtimeName: spriteRuntimeName(sprite),
+            setName: `directional_set_${set.id.replaceAll("-", "_")}`,
+        })));
+    const includes = [...new Set(entries.map(entry => entry.runtimeName))];
+    return [
+        "// Generated by @bonka/target-gba. Do not edit.",
+        "#ifndef BONKA_SPRITE_REGISTRY_H",
+        "#define BONKA_SPRITE_REGISTRY_H",
+        "",
+        "#include \"bonka/gba/sprite_runtime.h\"",
+        ...includes.map(name => `#include \"${name}.h\"`),
+        "",
+        "namespace bonka::generated {",
+        "",
+        `inline constexpr int directional_sprite_set_count = ${entries.length};`,
+        ...(entries.length ? [
+            "inline const bonka::gba::directional_sprite_set_descriptor directional_sprite_sets[] = {",
+            ...entries.map(entry => `    { ${cppString(entry.assetId)}, ${cppString(entry.setId)}, ${entry.runtimeName}::${entry.setName} },`),
+            "};",
+        ] : []),
+        "",
+        "}",
+        "",
+        "#endif",
+        "",
+    ].join("\n");
+}
+
+function selectedInputHeader(project) {
+    const inputMap = project.manifest.inputMap === undefined ? null : project.inputMaps.get(project.manifest.inputMap);
+    const actions = inputMap?.actions.map((action, index) => ({
+        id: action.id,
+        mask: 2 ** index,
+        bindings: action.bindings,
+    })) ?? [];
+    const bindings = actions.flatMap(action => action.bindings.map(binding => ({ ...binding, mask: action.mask })));
+    const mask = value => `0x${value.toString(16).padStart(8, "0")}u`;
+    return [
+        "// Generated by @bonka/target-gba. Do not edit.",
+        "#ifndef BONKA_SELECTED_INPUT_H",
+        "#define BONKA_SELECTED_INPUT_H",
+        "",
+        "#include \"bonka/gba/input_runtime.h\"",
+        "",
+        "#include <cstdint>",
+        "",
+        "namespace bonka::generated {",
+        "",
+        "struct input_action_descriptor {",
+        "    const char* id;",
+        "    uint32_t mask;",
+        "};",
+        `inline constexpr const char* selected_input_map_id = ${inputMap ? cppString(inputMap.id) : "nullptr"};`,
+        `inline constexpr int input_action_count = ${actions.length};`,
+        ...(actions.length ? [
+            "inline constexpr input_action_descriptor input_actions[] = {",
+            ...actions.map(action => `    { ${cppString(action.id)}, ${mask(action.mask)} },`),
+            "};",
+        ] : ["inline constexpr const input_action_descriptor* input_actions = nullptr;"]),
+        `inline constexpr int input_binding_count = ${bindings.length};`,
+        ...(bindings.length ? [
+            "inline constexpr bonka::gba::input_binding_descriptor input_bindings[] = {",
+            ...bindings.map(binding => `    { ${mask(binding.mask)}, bonka::gba::gba_control::${binding.control}, bonka::gba::input_trigger::${binding.trigger} },`),
+            "};",
+        ] : ["inline constexpr const bonka::gba::input_binding_descriptor* input_bindings = nullptr;"]),
+        "",
+        "}",
+        "",
+        "#endif",
+        "",
+    ].join("\n");
 }
 
 function flattenedLayers(layers, inherited = { visible: true, opacity: 1, x: 0, y: 0 }) {
@@ -381,6 +686,150 @@ function startSceneHeader(scene) {
     ].join("\n");
 }
 
+function nearestDirectionalAnimation(set, angle) {
+    return set.variants.reduce((closest, variant) => {
+        const distance = Math.abs((variant.angle - angle + 540) % 360 - 180);
+        const closestDistance = Math.abs((closest.angle - angle + 540) % 360 - 180);
+        return distance < closestDistance ? variant : closest;
+    }).animation;
+}
+
+function entityAnimation(project, entity, component) {
+    if(component.animation) return component.animation;
+    const sprite = project.sprites.get(component.asset);
+    const set = sprite.directionalSets.find(item => item.id === component.directionalSet);
+    return nearestDirectionalAnimation(set, entity.facingAngle ?? 0);
+}
+
+function entityAnimationIds(project, entity, component) {
+    if(component.animation) return [component.animation];
+    const sprite = project.sprites.get(component.asset);
+    return sprite.directionalSets.find(item => item.id === component.directionalSet).variants.map(variant => variant.animation);
+}
+
+function startSceneEntitiesHeader(project, scene) {
+    const selectedInputMap = project.manifest.inputMap === undefined ? null : project.inputMaps.get(project.manifest.inputMap);
+    const actionMasks = new Map(selectedInputMap?.actions.map((action, index) => [action.id, 2 ** index]) ?? []);
+    const entities = scene.entities.map((entity, index) => {
+        const behavior = project.entities.get(entity.definition)?.components.behavior;
+        const parameters = Object.entries(behavior?.parameters ?? {}).sort(([left], [right]) => left.localeCompare(right));
+        return {
+            instanceId: entity.id,
+            definitionId: entity.definition,
+            behaviorId: behavior?.id ?? null,
+            inputActionMask: (behavior?.inputActions ?? []).reduce(
+                (mask, action) => (mask | (actionMasks.get(action) ?? 0)) >>> 0, 0),
+            parameters,
+            parametersName: `start_scene_entity_${index}_parameters`,
+        };
+    });
+    const sprites = scene.entities.flatMap(entity => {
+        const definition = project.entities.get(entity.definition);
+        const component = definition?.components.sprite;
+        if(! component) {
+            return [];
+        }
+
+        const sprite = project.sprites.get(component.asset);
+        const animationId = entityAnimation(project, entity, component);
+        const x = entity.cell.x * scene.grid.width + Math.floor(scene.grid.width / 2) - scene.size.columns * scene.grid.width / 2;
+        const y = entity.cell.y * scene.grid.height + Math.floor(scene.grid.height / 2) - scene.size.rows * scene.grid.height / 2;
+        return [{
+            instanceId: entity.id,
+            runtimeName: spriteRuntimeName(sprite),
+            clipName: `clip_${animationId.replaceAll("-", "_")}`,
+            x,
+            y,
+            facingAngle: entity.facingAngle ?? 0,
+            // Butano draws higher z values first, so the lower z at a greater
+            // screen foot is covered later and appears in front.
+            screenFootDepth: y + Math.floor(sprite.frameSize.height / 2),
+        }];
+    }).sort((left, right) =>
+        left.screenFootDepth - right.screenFootDepth ||
+        left.x - right.x ||
+        left.instanceId.localeCompare(right.instanceId));
+    const includes = [...new Set(sprites.map(sprite => sprite.runtimeName))];
+    const parameterInitializer = ([name, value], entityId) => {
+        if(typeof value === "string") {
+            return `    { ${cppString(name)}, behavior_parameter_type::string, ${cppString(value)}, 0, false },`;
+        }
+        if(typeof value === "number") {
+            return `    { ${cppString(name)}, behavior_parameter_type::number, nullptr, ${fixedNumberData(value, `entities/${entityId}/components/behavior/parameters/${name}`)}, false },`;
+        }
+        return `    { ${cppString(name)}, behavior_parameter_type::boolean, nullptr, 0, ${value} },`;
+    };
+    return [
+        "// Generated by @bonka/target-gba. Do not edit.",
+        "#ifndef BONKA_START_SCENE_ENTITIES_H",
+        "#define BONKA_START_SCENE_ENTITIES_H",
+        "",
+        "#include \"bonka/gba/sprite_runtime.h\"",
+        "#include \"bn_vector.h\"",
+        "#include <cstdint>",
+        ...includes.map(name => `#include \"${name}.h\"`),
+        "",
+        "namespace bonka::generated {",
+        "",
+        `constexpr int start_scene_entity_count = ${entities.length};`,
+        "enum class behavior_parameter_type : uint8_t { string, number, boolean };",
+        "struct behavior_parameter_descriptor {",
+        "    const char* name;",
+        "    behavior_parameter_type type;",
+        "    const char* string_value;",
+        "    int32_t number_q20_12;",
+        "    bool bool_value;",
+        "};",
+        "struct start_scene_entity_descriptor {",
+        "    const char* instance_id;",
+        "    const char* behavior_id;",
+        "    uint32_t input_action_mask;",
+        "    const behavior_parameter_descriptor* parameters;",
+        "    int parameter_count;",
+        "};",
+        ...entities.flatMap(entity => entity.parameters.length ? [
+            `inline constexpr behavior_parameter_descriptor ${entity.parametersName}[] = {`,
+            ...entity.parameters.map(parameter => parameterInitializer(parameter, entity.definitionId)),
+            "};",
+        ] : []),
+        ...(entities.length ? [
+            "inline constexpr start_scene_entity_descriptor start_scene_entity_descriptors[] = {",
+            ...entities.map(entity => `    { ${cppString(entity.instanceId)}, ${entity.behaviorId === null ? "nullptr" : cppString(entity.behaviorId)}, 0x${entity.inputActionMask.toString(16).padStart(8, "0")}u, ${entity.parameters.length ? entity.parametersName : "nullptr"}, ${entity.parameters.length} },`),
+            "};",
+        ] : []),
+        "",
+        `constexpr int start_scene_sprite_count = ${sprites.length};`,
+        "struct start_scene_sprite_descriptor {",
+        "    const char* instance_id;",
+        "    const bonka::gba::sprite_clip& clip;",
+        "    int x;",
+        "    int y;",
+        "    int facing_angle;",
+        "    int foot_y_offset;",
+        "};",
+        ...(sprites.length ? [
+            "inline const start_scene_sprite_descriptor start_scene_sprite_descriptors[] = {",
+            ...sprites.map(sprite => `    { ${cppString(sprite.instanceId)}, ${sprite.runtimeName}::${sprite.clipName}, ${sprite.x}, ${sprite.y}, ${sprite.facingAngle}, ${sprite.screenFootDepth - sprite.y} },`),
+            "};",
+        ] : []),
+        "",
+        "",
+        "inline void create_start_scene_sprites(bn::vector<bonka::gba::sprite_actor, start_scene_sprite_count>& sprites) {",
+        ...sprites.map(sprite => `    sprites.emplace_back(${sprite.runtimeName}::${sprite.clipName}, ${sprite.x}, ${sprite.y});`),
+        "}",
+        "",
+        "inline void update_start_scene_sprites(bn::vector<bonka::gba::sprite_actor, start_scene_sprite_count>& sprites, bonka::gba::sprite_bank_manager& banks) {",
+        "    banks.update();",
+        "    for(bonka::gba::sprite_actor& sprite : sprites) { sprite.update(); }",
+        "}",
+        "",
+        "}",
+        "",
+        "#endif",
+        "",
+    ].join("\n");
+}
+
 function generatedMakefile(project) {
     const inputs = [project.manifestPath, ...project.resourcePaths.values(), ...project.sourcePaths.values()]
         .map(filePath => makePath(project.rootDir, filePath))
@@ -429,7 +878,10 @@ async function publishGeneratedOutput(project, files) {
 export async function generateGbaProject(projectFile = "bonka.config.json") {
     const project = await loadBonkaProject(projectFile);
     const images = await loadTilesets(project);
-    const files = [["generated.mk", generatedMakefile(project)]];
+    const files = [
+        ["generated.mk", generatedMakefile(project)],
+        ["include/bonka_selected_input.h", selectedInputHeader(project)],
+    ];
     for(const scene of project.scenes.values()) {
         const name = outputName(scene.id);
         const image = renderScene(project, scene, images);
@@ -440,7 +892,36 @@ export async function generateGbaProject(projectFile = "bonka.config.json") {
         files.push([`include/${name}.h`, sceneHeader(scene)]);
         files.push([`include/${name}_map.h`, sceneMapHeader(scene, bank)]);
     }
-    files.push(["include/bonka_start_scene.h", startSceneHeader(project.scenes.get(project.manifest.startScene))]);
+    const requiredSpriteAnimations = new Map();
+    for(const [spriteId, sprite] of project.sprites) {
+        for(const animationId of Object.keys(sprite.animations)) {
+            requiredSpriteAnimations.set(`${spriteId}:${animationId}`, { spriteId, animationId });
+        }
+    }
+    const animationIdsBySprite = new Map();
+    for(const { spriteId, animationId } of requiredSpriteAnimations.values()) {
+        const ids = animationIdsBySprite.get(spriteId) ?? [];
+        ids.push(animationId);
+        animationIdsBySprite.set(spriteId, ids);
+    }
+    for(const { spriteId, animationId } of requiredSpriteAnimations.values()) {
+        const sprite = project.sprites.get(spriteId);
+        const animation = sprite.animations[animationId];
+        const image = await loadSpriteImage(project, sprite);
+        const sheet = extractSpriteAnimation(sprite, image, animation);
+        const name = spriteOutputName(sprite, animationId);
+        files.push([`graphics/${name}.bmp`, encodeSpriteBitmap(sheet, sprite.gba.colors)]);
+        files.push([`graphics/${name}.json`, `${JSON.stringify({ type: "sprite", width: sprite.frameSize.width, height: sprite.frameSize.height, bpp_mode: sprite.gba.bpp === 4 ? "bpp_4" : "bpp_8", generate_palette: true }, null, 2)}\n`]);
+        files.push([`include/${name}.h`, spriteHeader(sprite, animationId)]);
+    }
+    for(const [spriteId, animationIds] of animationIdsBySprite) {
+        const sprite = project.sprites.get(spriteId);
+        files.push([`include/${spriteRuntimeName(sprite)}.h`, spriteRuntimeHeader(sprite, animationIds)]);
+    }
+    files.push(["include/bonka_sprite_registry.h", spriteRegistryHeader(project)]);
+    const startScene = project.scenes.get(project.manifest.startScene);
+    files.push(["include/bonka_start_scene.h", startSceneHeader(startScene)]);
+    files.push(["include/bonka_start_scene_entities.h", startSceneEntitiesHeader(project, startScene)]);
     await publishGeneratedOutput(project, files);
     return { project, files: files.map(([filePath]) => filePath) };
 }

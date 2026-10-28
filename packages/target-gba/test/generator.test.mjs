@@ -29,13 +29,31 @@ async function createProject(root) {
         name: "Generator Fixture",
         engine: "butano",
         startScene: "sample-scene",
+        inputMap: "default",
         resources: {
             scenes: ["scenes/sample.scene.json"],
             tilesets: ["tilesets/red.tileset.json", "tilesets/blue.tileset.json"],
             metatiles: ["metatiles/mixed.metatile.json", "metatiles/hidden.metatile.json"],
-            sprites: [],
-            entities: [],
+            sprites: ["sprites/sample.sprite.json", "sprites/unused.sprite.json"],
+            entities: ["entities/sample.entity.json", "entities/no-sprite.entity.json"],
+            inputMaps: ["input-maps/default.input-map.json"],
         },
+    });
+    await writeJson(path.join(root, "input-maps", "default.input-map.json"), {
+        formatVersion: 1,
+        type: "inputMap",
+        id: "default",
+        name: "Default",
+        actions: [{
+            id: "move-up",
+            bindings: [
+                { platform: "gba", control: "up", trigger: "held" },
+                { platform: "gba", control: "a", trigger: "pressed" },
+            ],
+        }, {
+            id: "walk",
+            bindings: [{ platform: "gba", control: "b", trigger: "released" }],
+        }],
     });
     await writeJson(path.join(root, "scenes", "sample.scene.json"), {
         formatVersion: 1,
@@ -78,7 +96,12 @@ async function createProject(root) {
             }],
             objects: [],
         }],
-        entities: [],
+        entities: [
+            { id: "sample-entity", definition: "sample-entity", cell: { x: 4, y: 8 }, facingAngle: 180 },
+            { id: "front-entity", definition: "sample-entity", cell: { x: 3, y: 10 }, facingAngle: 180 },
+            { id: "same-depth-entity", definition: "sample-entity", cell: { x: 2, y: 10 }, facingAngle: 180 },
+            { id: "no-sprite-entity", definition: "no-sprite-entity", cell: { x: 1, y: 1 } },
+        ],
     });
     await writeJson(path.join(root, "tilesets", "red.tileset.json"), {
         formatVersion: 1,
@@ -155,6 +178,75 @@ async function createProject(root) {
         tiles: [{ tileset: "blue-tileset", tile: 0 }, ...Array(15).fill(null)],
         collision: Array(16).fill(0),
     });
+    await writeJson(path.join(root, "sprites", "sample.sprite.json"), {
+        formatVersion: 1,
+        type: "sprite",
+        id: "sample-sprite",
+        source: "sample.png",
+        frameSize: { width: 8, height: 8 },
+        frameCount: 2,
+        layout: {
+            imageWidth: 24,
+            imageHeight: 12,
+            columns: 2,
+            rows: 1,
+            margin: { x: 2, y: 2 },
+            spacing: { x: 4, y: 0 },
+        },
+        animations: {
+            idle: { loop: true, frames: [{ index: 0, duration: 8 }] },
+            left: { loop: true, frames: [{ index: 1, duration: 8 }, { index: 0, duration: 4 }] },
+        },
+        directionalSets: [{
+            id: "idle-directions",
+            variants: [
+                { angle: 0, animation: "idle" },
+                { angle: 180, animation: "left" },
+            ],
+        }],
+        gba: { colors: 16, bpp: 4 },
+    });
+    await writeJson(path.join(root, "entities", "sample.entity.json"), {
+        formatVersion: 1,
+        type: "entity",
+        id: "sample-entity",
+        name: "Sample Entity",
+        components: {
+            sprite: { asset: "sample-sprite", directionalSet: "idle-directions" },
+            behavior: {
+                id: "character-control",
+                inputActions: ["move-up", "walk"],
+                parameters: {
+                    label: "Sample",
+                    speed: 1.25,
+                    normalize: true,
+                },
+            },
+        },
+    });
+    await writeJson(path.join(root, "entities", "no-sprite.entity.json"), {
+        formatVersion: 1,
+        type: "entity",
+        id: "no-sprite-entity",
+        name: "No Sprite Entity",
+        components: { behavior: { id: "marker" } },
+    });
+    await writeJson(path.join(root, "sprites", "unused.sprite.json"), {
+        formatVersion: 1,
+        type: "sprite",
+        id: "unused-sprite",
+        source: "unused.png",
+        frameSize: { width: 8, height: 8 },
+        frameCount: 1,
+        animations: {
+            idle: { loop: true, frames: [{ index: 0, duration: 8 }] },
+        },
+        directionalSets: [{
+            id: "unused-directions",
+            variants: [{ angle: 0, animation: "idle" }],
+        }],
+        gba: { colors: 16, bpp: 4 },
+    });
 
     const red = new PNG({ width: 16, height: 8 });
     for(let y = 0; y < red.height; ++y) {
@@ -174,11 +266,35 @@ async function createProject(root) {
         blue.data[index + 3] = 255;
     }
     await writeFile(path.join(root, "tilesets", "blue.png"), PNG.sync.write(blue));
+
+    const sprite = new PNG({ width: 24, height: 12 });
+    for(let y = 3; y < 10; ++y) {
+        for(let x = 3; x < 10; ++x) {
+            const index = (y * sprite.width + x) * 4;
+            sprite.data[index] = 255;
+            sprite.data[index + 3] = 255;
+        }
+        for(let x = 14; x < 22; ++x) {
+            const index = (y * sprite.width + x) * 4;
+            sprite.data[index + 2] = 255;
+            sprite.data[index + 3] = 255;
+        }
+    }
+    await writeFile(path.join(root, "sprites", "sample.png"), PNG.sync.write(sprite));
+    await writeFile(path.join(root, "sprites", "unused.png"), PNG.sync.write(sprite));
 }
 
 function pixel(image, x, y) {
     const index = (y * image.width + x) * image.channels;
     return [...image.data.subarray(index, index + 3)];
+}
+
+function bitmapPaletteIndex(bitmap, x, y) {
+    const width = bitmap.readInt32LE(18);
+    const height = bitmap.readInt32LE(22);
+    const offset = bitmap.readUInt32LE(10);
+    const rowStride = Math.ceil(width / 4) * 4;
+    return bitmap[offset + (height - 1 - y) * rowStride + x];
 }
 
 function mapCells(header) {
@@ -206,11 +322,25 @@ test("generates disposable Butano inputs from a Project Format v1 project", asyn
 
         assert.deepEqual(first.files, [
             "generated.mk",
+            "include/bonka_selected_input.h",
             "graphics/bonka_scene_sample_scene.bmp",
             "graphics/bonka_scene_sample_scene.json",
             "include/bonka_scene_sample_scene.h",
             "include/bonka_scene_sample_scene_map.h",
+            "graphics/bonka_sprite_sample_sprite_idle.bmp",
+            "graphics/bonka_sprite_sample_sprite_idle.json",
+            "include/bonka_sprite_sample_sprite_idle.h",
+            "graphics/bonka_sprite_sample_sprite_left.bmp",
+            "graphics/bonka_sprite_sample_sprite_left.json",
+            "include/bonka_sprite_sample_sprite_left.h",
+            "graphics/bonka_sprite_unused_sprite_idle.bmp",
+            "graphics/bonka_sprite_unused_sprite_idle.json",
+            "include/bonka_sprite_unused_sprite_idle.h",
+            "include/bonka_sprite_sample_sprite_clips.h",
+            "include/bonka_sprite_unused_sprite_clips.h",
+            "include/bonka_sprite_registry.h",
             "include/bonka_start_scene.h",
+            "include/bonka_start_scene_entities.h",
         ]);
         const output = await readFile(path.join(root, ".bonka", "graphics", "bonka_scene_sample_scene.bmp"));
         assert.equal(output.toString("ascii", 0, 2), "BM");
@@ -226,16 +356,44 @@ test("generates disposable Butano inputs from a Project Format v1 project", asyn
         const graphicsConfig = await readFile(path.join(root, ".bonka", "graphics", "bonka_scene_sample_scene.json"), "utf8");
         assert.match(graphicsConfig, /"regular_bg_tiles"/);
         assert.match(graphicsConfig, /"generate_palette": true/);
+        const spriteBitmap = await readFile(path.join(root, ".bonka", "graphics", "bonka_sprite_sample_sprite_left.bmp"));
+        const spriteOutput = decode(spriteBitmap);
+        assert.equal(spriteOutput.width, 16);
+        assert.equal(spriteOutput.height, 8);
+        assert.deepEqual(pixel(spriteOutput, 1, 1), [0, 0, 255]);
+        assert.deepEqual(pixel(spriteOutput, 9, 1), [255, 0, 0]);
+        assert.equal(bitmapPaletteIndex(spriteBitmap, 0, 0), 0);
+        assert.notEqual(bitmapPaletteIndex(spriteBitmap, 2, 2), 0);
+        const spriteConfig = await readFile(path.join(root, ".bonka", "graphics", "bonka_sprite_sample_sprite_left.json"), "utf8");
+        assert.match(spriteConfig, /"type": "sprite"/);
+        assert.match(spriteConfig, /"width": 8/);
+        assert.match(await readFile(path.join(root, ".bonka", "graphics", "bonka_sprite_sample_sprite_idle.json"), "utf8"), /"type": "sprite"/);
 
         const generatedMakefile = await readFile(path.join(root, ".bonka", "generated.mk"), "utf8");
         assert.match(generatedMakefile, /tilesets\/red\.png/);
         assert.match(generatedMakefile, /tilesets\/blue\.png/);
         assert.match(generatedMakefile, /metatiles\/mixed\.metatile\.json/);
         assert.match(generatedMakefile, /metatiles\/hidden\.metatile\.json/);
+        assert.match(generatedMakefile, /sprites\/sample\.png/);
+        assert.match(generatedMakefile, /sprites\/unused\.png/);
         assert.deepEqual(await readdir(path.join(root, ".bonka", "graphics")), [
             "bonka_scene_sample_scene.bmp",
             "bonka_scene_sample_scene.json",
+            "bonka_sprite_sample_sprite_idle.bmp",
+            "bonka_sprite_sample_sprite_idle.json",
+            "bonka_sprite_sample_sprite_left.bmp",
+            "bonka_sprite_sample_sprite_left.json",
+            "bonka_sprite_unused_sprite_idle.bmp",
+            "bonka_sprite_unused_sprite_idle.json",
         ]);
+        assert.match(await readFile(path.join(root, ".bonka", "include", "bonka_sprite_sample_sprite_left.h"), "utf8"), /FRAME_COUNT = 2/);
+        const spriteClipsHeader = await readFile(path.join(root, ".bonka", "include", "bonka_sprite_sample_sprite_clips.h"), "utf8");
+        assert.match(spriteClipsHeader, /bonka::gba::sprite_clip clip_idle/);
+        assert.match(spriteClipsHeader, /bonka::gba::sprite_clip clip_left/);
+        assert.match(spriteClipsHeader, /clip_left\([^\n]+, 64\)/);
+        assert.match(spriteClipsHeader, /directional_sprite_variant directional_set_idle_directions_variants/);
+        assert.match(spriteClipsHeader, /directional_sprite_set directional_set_idle_directions/);
+        assert.match(spriteClipsHeader, /tile_bytes = 96/);
         assert.match(await readFile(path.join(root, ".bonka", "include", "bonka_scene_sample_scene.h"), "utf8"), /CELLS_X = 32/);
         const sceneMapHeader = await readFile(path.join(root, ".bonka", "include", "bonka_scene_sample_scene_map.h"), "utf8");
         const cells = mapCells(sceneMapHeader);
@@ -262,6 +420,40 @@ test("generates disposable Butano inputs from a Project Format v1 project", asyn
         assert.match(startSceneHeader, /start_scene_pixels_y = 512/);
         assert.match(startSceneHeader, /start_scene_background_center_x = 0/);
         assert.match(startSceneHeader, /start_scene_background_center_y = 0/);
+        const startSceneEntitiesHeader = await readFile(path.join(root, ".bonka", "include", "bonka_start_scene_entities.h"), "utf8");
+        assert.match(startSceneEntitiesHeader, /start_scene_sprite_count = 3/);
+        assert.match(startSceneEntitiesHeader, /start_scene_entity_count = 4/);
+        assert.match(startSceneEntitiesHeader, /struct start_scene_entity_descriptor/);
+        assert.match(startSceneEntitiesHeader, /const char\* behavior_id/);
+        assert.match(startSceneEntitiesHeader, /uint32_t input_action_mask/);
+        assert.match(startSceneEntitiesHeader, /behavior_parameter_type::string, "Sample", 0, false/);
+        assert.match(startSceneEntitiesHeader, /behavior_parameter_type::number, nullptr, 5120, false/);
+        assert.match(startSceneEntitiesHeader, /behavior_parameter_type::boolean, nullptr, 0, true/);
+        assert.match(startSceneEntitiesHeader, /\{ "sample-entity", "character-control", 0x00000003u, start_scene_entity_0_parameters, 3 \}/);
+        assert.match(startSceneEntitiesHeader, /\{ "no-sprite-entity", "marker", 0x00000000u, nullptr, 0 \}/);
+        assert.match(startSceneEntitiesHeader, /bonka_sprite_sample_sprite_clips\.h/);
+        assert.match(startSceneEntitiesHeader, /struct start_scene_sprite_descriptor/);
+        assert.match(startSceneEntitiesHeader, /const char\* instance_id/);
+        assert.match(startSceneEntitiesHeader, /int foot_y_offset/);
+        assert.match(startSceneEntitiesHeader, /\{ "sample-entity", bonka_sprite_sample_sprite_clips::clip_left, -184, -188, 180, 4 \}/);
+        assert.match(startSceneEntitiesHeader, /\{ "same-depth-entity", bonka_sprite_sample_sprite_clips::clip_left, -216, -172, 180, 4 \}/);
+        assert.match(startSceneEntitiesHeader, /\{ "front-entity", bonka_sprite_sample_sprite_clips::clip_left, -200, -172, 180, 4 \}/);
+        assert.match(startSceneEntitiesHeader, /sprites\.emplace_back\(bonka_sprite_sample_sprite_clips::clip_left, -184, -188\)/);
+        assert.match(startSceneEntitiesHeader, /update_start_scene_sprites/);
+        assert.match(startSceneEntitiesHeader, /sprite\.update\(\)/);
+
+        const inputHeader = await readFile(path.join(root, ".bonka", "include", "bonka_selected_input.h"), "utf8");
+        assert.match(inputHeader, /selected_input_map_id = "default"/);
+        assert.match(inputHeader, /\{ "move-up", 0x00000001u \}/);
+        assert.match(inputHeader, /\{ "walk", 0x00000002u \}/);
+        assert.match(inputHeader, /gba_control::up, bonka::gba::input_trigger::held/);
+        assert.match(inputHeader, /gba_control::a, bonka::gba::input_trigger::pressed/);
+        assert.match(inputHeader, /gba_control::b, bonka::gba::input_trigger::released/);
+
+        const registryHeader = await readFile(path.join(root, ".bonka", "include", "bonka_sprite_registry.h"), "utf8");
+        assert.match(registryHeader, /directional_sprite_set_count = 2/);
+        assert.match(registryHeader, /\{ "sample-sprite", "idle-directions", bonka_sprite_sample_sprite_clips::directional_set_idle_directions \}/);
+        assert.match(registryHeader, /\{ "unused-sprite", "unused-directions", bonka_sprite_unused_sprite_clips::directional_set_unused_directions \}/);
 
         await writeFile(path.join(root, ".bonka", "stale.txt"), "stale\n");
         await generateGbaProject(manifestPath);
