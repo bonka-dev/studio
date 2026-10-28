@@ -1,7 +1,9 @@
 import Ajv from "ajv";
 
 import entitySchema from "@bonka/project-format/schemas/entity-v1.schema.json" with { type: "json" };
+import inputMapSchema from "@bonka/project-format/schemas/input-map-v1.schema.json" with { type: "json" };
 import metatileSchema from "@bonka/project-format/schemas/metatile-v1.schema.json" with { type: "json" };
+import prefabSchema from "@bonka/project-format/schemas/prefab-v1.schema.json" with { type: "json" };
 import projectSchema from "@bonka/project-format/schemas/project-v1.schema.json" with { type: "json" };
 import sceneSchema from "@bonka/project-format/schemas/scene-v1.schema.json" with { type: "json" };
 import spriteSchema from "@bonka/project-format/schemas/sprite-v1.schema.json" with { type: "json" };
@@ -12,10 +14,12 @@ const ajv = new Ajv({ allErrors: true, strict: true });
 const validators = Object.freeze({
     project: ajv.compile(projectSchema),
     metatile: ajv.compile(metatileSchema),
+    prefab: ajv.compile(prefabSchema),
     scene: ajv.compile(sceneSchema),
     sprite: ajv.compile(spriteSchema),
     tileset: ajv.compile(tilesetSchema),
     entity: ajv.compile(entitySchema),
+    inputMap: ajv.compile(inputMapSchema),
 });
 
 export class BonkaProjectError extends Error {
@@ -118,6 +122,25 @@ function validateMetatiles(metatiles, tilesets) {
     }
 }
 
+function validatePrefabs(prefabs, metatiles) {
+    for(const [prefabId, prefab] of prefabs) {
+        const path = `prefabs/${prefabId}`;
+        const occupiedCells = new Set();
+        for(const [index, placement] of prefab.placements.entries()) {
+            const placementPath = `${path}/placements/${index}`;
+            if(placement.cell.x >= prefab.columns || placement.cell.y >= prefab.rows) {
+                projectError(`${placementPath}/cell`, "placement is outside prefab bounds");
+            }
+            const cell = `${placement.cell.x}:${placement.cell.y}`;
+            if(occupiedCells.has(cell)) {
+                projectError(`${placementPath}/cell`, "duplicate prefab placement cell");
+            }
+            occupiedCells.add(cell);
+            requireResource(metatiles, placement.metatile, `${placementPath}/metatile`, "metatile");
+        }
+    }
+}
+
 function validateEntityDefinitions(entities, sprites) {
     for(const [entityId, entity] of entities) {
         const spriteComponent = entity.components.sprite;
@@ -131,25 +154,124 @@ function validateEntityDefinitions(entities, sprites) {
             `entities/${entityId}/components/sprite/asset`,
             "sprite"
         );
-        if(! Object.hasOwn(sprite.animations, spriteComponent.animation)) {
+        if(spriteComponent.animation && ! Object.hasOwn(sprite.animations, spriteComponent.animation)) {
             projectError(
                 `entities/${entityId}/components/sprite/animation`,
                 `unknown animation '${spriteComponent.animation}' on sprite '${sprite.id}'`
             );
+        }
+        if(spriteComponent.directionalSet && ! sprite.directionalSets?.some(set => set.id === spriteComponent.directionalSet)) {
+            projectError(
+                `entities/${entityId}/components/sprite/directionalSet`,
+                `unknown directional set '${spriteComponent.directionalSet}' on sprite '${sprite.id}'`
+            );
+        }
+    }
+}
+
+function validateInputMaps(inputMaps) {
+    for(const [inputMapId, inputMap] of inputMaps) {
+        if(inputMap.actions.length > 32) {
+            projectError(`inputMaps/${inputMapId}/actions`, "input maps support at most 32 actions");
+        }
+        const actionIds = new Set();
+        for(const [index, action] of inputMap.actions.entries()) {
+            if(actionIds.has(action.id)) {
+                projectError(`inputMaps/${inputMapId}/actions/${index}/id`, `duplicate input action ID '${action.id}'`);
+            }
+            actionIds.add(action.id);
+        }
+    }
+}
+
+function validateEntityInputActions(entities, selectedInputMap) {
+    if(! selectedInputMap) {
+        return;
+    }
+    const actionIds = new Set(selectedInputMap.actions.map(action => action.id));
+    for(const [entityId, entity] of entities) {
+        for(const [index, actionId] of (entity.components.behavior?.inputActions ?? []).entries()) {
+            if(! actionIds.has(actionId)) {
+                projectError(
+                    `entities/${entityId}/components/behavior/inputActions/${index}`,
+                    `unknown input action '${actionId}' in selected input map '${selectedInputMap.id}'`
+                );
+            }
         }
     }
 }
 
 function validateSprites(sprites) {
     for(const [spriteId, sprite] of sprites) {
+        function validateLayout(layout, path, frameCount) {
+            if(! layout) return;
+            const { imageWidth, imageHeight, columns, rows, margin, spacing } = layout;
+            const frameWidth = margin.x + (columns - 1) * (sprite.frameSize.width + spacing.x) + sprite.frameSize.width;
+            const frameHeight = margin.y + (rows - 1) * (sprite.frameSize.height + spacing.y) + sprite.frameSize.height;
+            if(frameWidth > imageWidth || frameHeight > imageHeight) {
+                projectError(
+                    path,
+                    `grid requires ${frameWidth}x${frameHeight} pixels, exceeding declared image size ${imageWidth}x${imageHeight}`
+                );
+            }
+            if(frameCount > columns * rows) {
+                projectError(
+                    path,
+                    `frame count ${frameCount} exceeds layout capacity ${columns * rows}`
+                );
+            }
+        }
+        validateLayout(sprite.layout, `sprites/${spriteId}/layout`, sprite.frameCount);
+        if(sprite.authoring) {
+            const { width, height, layers } = sprite.authoring;
+            const expectedPixels = width * height;
+            if(sprite.layout && (width !== sprite.layout.imageWidth || height !== sprite.layout.imageHeight)) {
+                projectError(`sprites/${spriteId}/authoring`, "dimensions must match the sprite layout image size");
+            }
+            const layerIds = new Set();
+            for(const [index, layer] of layers.entries()) {
+                if(layerIds.has(layer.id)) {
+                    projectError(`sprites/${spriteId}/authoring/layers/${index}/id`, `duplicate layer ID '${layer.id}'`);
+                }
+                layerIds.add(layer.id);
+                const layerPixels = (layer.width ?? width) * (layer.height ?? height);
+                if(layer.kind === "drawing" && layerPixels !== expectedPixels) {
+                    projectError(`sprites/${spriteId}/authoring/layers/${index}/pixels`, `drawing layers must use the authoring dimensions ${width}x${height}`);
+                }
+                if(layer.pixels.length !== layerPixels) {
+                    projectError(`sprites/${spriteId}/authoring/layers/${index}/pixels`, `must contain exactly ${layerPixels} pixels`);
+                }
+            }
+        }
         for(const [animationId, animation] of Object.entries(sprite.animations)) {
+            const animationCapacity = animation.layout ? animation.layout.columns * animation.layout.rows : sprite.frameCount;
+            validateLayout(animation.layout, `sprites/${spriteId}/animations/${animationId}/layout`, animation.frames.length);
             for(const [index, frame] of animation.frames.entries()) {
-                if(frame.index >= sprite.frameCount) {
+                if(frame.index >= animationCapacity) {
                     projectError(
                         `sprites/${spriteId}/animations/${animationId}/frames/${index}/index`,
-                        `frame index ${frame.index} exceeds frame count ${sprite.frameCount}`
+                        `frame index ${frame.index} exceeds frame count ${animationCapacity}`
                     );
                 }
+            }
+        }
+        const directionalSetIds = new Set();
+        for(const [setIndex, set] of (sprite.directionalSets ?? []).entries()) {
+            const setPath = `sprites/${spriteId}/directionalSets/${setIndex}`;
+            if(directionalSetIds.has(set.id)) {
+                projectError(`${setPath}/id`, `duplicate directional set ID '${set.id}'`);
+            }
+            directionalSetIds.add(set.id);
+            const angles = new Set();
+            for(const [variantIndex, variant] of set.variants.entries()) {
+                const variantPath = `${setPath}/variants/${variantIndex}`;
+                if(! Object.hasOwn(sprite.animations, variant.animation)) {
+                    projectError(`${variantPath}/animation`, `unknown animation '${variant.animation}'`);
+                }
+                if(angles.has(variant.angle)) {
+                    projectError(`${variantPath}/angle`, `duplicate directional variant angle ${variant.angle}`);
+                }
+                angles.add(variant.angle);
             }
         }
     }
@@ -238,10 +360,17 @@ function validateScene(scene, tilesets, metatiles, entities) {
 
 export function validateProjectGraph(project) {
     requireResource(project.scenes, project.manifest.startScene, "project/startScene", "scene");
+    let selectedInputMap;
+    if(project.manifest.inputMap !== undefined) {
+        selectedInputMap = requireResource(project.inputMaps ?? new Map(), project.manifest.inputMap, "project/inputMap", "input map");
+    }
     validateTilesets(project.tilesets);
     validateMetatiles(project.metatiles, project.tilesets);
+    validatePrefabs(project.prefabs ?? new Map(), project.metatiles);
     validateSprites(project.sprites);
     validateEntityDefinitions(project.entities, project.sprites);
+    validateInputMaps(project.inputMaps ?? new Map());
+    validateEntityInputActions(project.entities, selectedInputMap);
 
     for(const scene of project.scenes.values()) {
         validateScene(scene, project.tilesets, project.metatiles, project.entities);
@@ -252,7 +381,7 @@ export function validateProjectGraph(project) {
 
 export function validateProjectDocuments(project) {
     validateDocument("project", project.manifest, project.manifestPath);
-    for(const [group, kind] of [["scenes", "scene"], ["tilesets", "tileset"], ["metatiles", "metatile"], ["sprites", "sprite"], ["entities", "entity"]]) {
+    for(const [group, kind] of [["scenes", "scene"], ["tilesets", "tileset"], ["metatiles", "metatile"], ["prefabs", "prefab"], ["sprites", "sprite"], ["entities", "entity"], ["inputMaps", "inputMap"]]) {
         for(const [id, document] of project[group]) {
             validateDocument(kind, document, project.resourcePaths.get(`${kind}:${id}`) ?? `${group}/${id}`);
         }

@@ -1,0 +1,14 @@
+{
+  "formatVersion": 1,
+  "type": "inputMap",
+  "id": "default",
+  "name": "Default",
+  "actions": [
+    {
+      "id": "move-up",
+      "bindings": [
+        { "platform": "gba", "control": "up", "trigger": "held" }
+      ]
+    }
+  ]
+}

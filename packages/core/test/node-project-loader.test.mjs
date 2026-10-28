@@ -17,6 +17,8 @@ test("loads a self-contained Project Format v1 fixture", async() => {
     assert.deepEqual([...project.metatiles.keys()], ["sample-metatile"]);
     assert.deepEqual([...project.sprites.keys()], ["sample-sprite"]);
     assert.deepEqual([...project.entities.keys()], ["sample-entity"]);
+    assert.deepEqual([...project.inputMaps.keys()], ["default"]);
+    assert.equal(project.inputMaps.get("default").actions[0].bindings[0].control, "up");
     assert.match(project.sourcePaths.get("tileset:sample-tileset"), /tileset\.svg$/);
     assert.match(project.resourcePaths.get("metatile:sample-metatile"), /sample\.metatile\.json$/);
     assert.match(project.sourcePaths.get("sprite:sample-sprite"), /sprite\.svg$/);

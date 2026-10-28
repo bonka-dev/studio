@@ -4,8 +4,10 @@ const RESOURCE_GROUPS = Object.freeze([
     ["scenes", "scene"],
     ["tilesets", "tileset"],
     ["metatiles", "metatile"],
+    ["prefabs", "prefab"],
     ["sprites", "sprite"],
     ["entities", "entity"],
+    ["inputMaps", "inputMap"],
 ]);
 
 export async function loadBonkaProjectWithAdapter(adapter) {
@@ -22,14 +24,16 @@ export async function loadBonkaProjectWithAdapter(adapter) {
         scenes: new Map(),
         tilesets: new Map(),
         metatiles: new Map(),
+        prefabs: new Map(),
         sprites: new Map(),
         entities: new Map(),
+        inputMaps: new Map(),
         resourcePaths: new Map(),
         sourcePaths: new Map(),
     };
 
     for(const [group, kind] of RESOURCE_GROUPS) {
-        for(const [index, resourceName] of manifest.resources[group].entries()) {
+        for(const [index, resourceName] of (manifest.resources[group] ?? []).entries()) {
             const source = `${adapter.manifestPath}/resources/${group}/${index}`;
             const resourcePath = await adapter.resolveResource(resourceName, source);
             const document = validateDocument(kind, await adapter.readJson(resourcePath, resourceName), resourceName);

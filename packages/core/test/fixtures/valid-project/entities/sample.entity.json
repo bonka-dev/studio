@@ -7,6 +7,15 @@
     "sprite": {
       "asset": "sample-sprite",
       "animation": "idle"
+    },
+    "behavior": {
+      "id": "directional-movement",
+      "inputActions": ["move-up"],
+      "parameters": {
+        "movementSpace": "screen",
+        "speed": 1.5,
+        "normalizeDiagonal": true
+      }
     }
   }
 }
