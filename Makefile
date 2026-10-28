@@ -31,14 +31,16 @@
 #
 # All directories are specified relative to the project directory where the makefile is found.
 #---------------------------------------------------------------------------------------------------------------------
-TARGET      	:=  bonka_welcome
-BUILD       	:=  build
-LIBBUTANO   	:=  vendor/butano/butano
+TARGET      	:=  .bonka/build/bonka_welcome
+BUILD       	:=  .bonka/build
+# Butano resolves source directories from the project root; Docker supplies ../opt/butano.
+BUTANO_ROOT 	?=  vendor/butano
+LIBBUTANO   	?=  $(BUTANO_ROOT)/butano
 PYTHON      	:=  python3
-SOURCES         :=  src vendor/butano/common/src
-INCLUDES        :=  include vendor/butano/common/include
+SOURCES         :=  src $(BUTANO_ROOT)/common/src
+INCLUDES        :=  include packages/runtime/include $(BUTANO_ROOT)/common/include
 DATA        	:=
-GRAPHICS        :=  vendor/butano/common/graphics
+GRAPHICS        :=  $(BUTANO_ROOT)/common/graphics
 AUDIO       	:=  audio
 AUDIOBACKEND	:=  maxmod
 AUDIOTOOL		:=
@@ -57,7 +59,8 @@ STACKTRACE		:=
 USERBUILD   	:=
 EXTTOOL :=
 
-ifneq ($(BUILD),$(notdir $(CURDIR)))
+# Butano's recursive makefiles require BUILD to match the current directory name.
+ifneq ($(notdir $(BUILD)),$(notdir $(CURDIR)))
 .DEFAULT_GOAL := all
 
 ifneq ($(strip $(MAKECMDGOALS)),clean)
@@ -69,6 +72,8 @@ BONKA_GENERATOR_INPUTS := $(wildcard packages/target-gba/src/*.mjs packages/core
 $(BONKA_GENERATED): $(BONKA_INPUTS) $(BONKA_GENERATOR_INPUTS)
 	node packages/target-gba/src/cli.mjs --project bonka.config.json
 endif
+else
+BUILD := $(notdir $(BUILD))
 endif
 
 #---------------------------------------------------------------------------------------------------------------------
