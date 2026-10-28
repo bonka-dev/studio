@@ -832,7 +832,7 @@ function generatedMakefile(project) {
     ].join("\n");
 }
 
-async function ensureGeneratedDirectory(rootDir, generatedDir) {
+async function ensureGeneratedDirectory(generatedDir) {
     try {
         const entry = await lstat(generatedDir);
         if(entry.isSymbolicLink() || ! entry.isDirectory()) {
@@ -843,21 +843,25 @@ async function ensureGeneratedDirectory(rootDir, generatedDir) {
             throw error;
         }
     }
-    await mkdir(rootDir, { recursive: true });
+    await mkdir(generatedDir, { recursive: true });
 }
 
 async function publishGeneratedOutput(project, files) {
     const generatedDir = path.join(project.rootDir, ".bonka");
-    await ensureGeneratedDirectory(project.rootDir, generatedDir);
-    const stagingDir = await mkdtemp(path.join(project.rootDir, ".bonka-stage-"));
+    await ensureGeneratedDirectory(generatedDir);
+    const stagingDir = await mkdtemp(path.join(generatedDir, ".stage-"));
     try {
         for(const [relativePath, contents] of files) {
             const outputPath = path.join(stagingDir, relativePath);
             await mkdir(path.dirname(outputPath), { recursive: true });
             await writeFile(outputPath, contents);
         }
-        await rm(generatedDir, { recursive: true, force: true });
-        await rename(stagingDir, generatedDir);
+        for(const relativePath of ["generated.mk", "graphics", "include"]) {
+            const outputPath = path.join(generatedDir, relativePath);
+            await rm(outputPath, { recursive: true, force: true });
+            await rename(path.join(stagingDir, relativePath), outputPath);
+        }
+        await rm(stagingDir, { recursive: true, force: true });
     } catch(error) {
         await rm(stagingDir, { recursive: true, force: true });
         throw error;

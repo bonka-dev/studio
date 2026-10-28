@@ -453,8 +453,11 @@ test("generates disposable Butano inputs from a Project Format v1 project", asyn
         assert.match(registryHeader, /\{ "sample-sprite", "idle-directions", bonka_sprite_sample_sprite_clips::directional_set_idle_directions \}/);
         assert.match(registryHeader, /\{ "unused-sprite", "unused-directions", bonka_sprite_unused_sprite_clips::directional_set_unused_directions \}/);
 
-        await writeFile(path.join(root, ".bonka", "stale.txt"), "stale\n");
+        await writeFile(path.join(root, ".bonka", "graphics", "stale.txt"), "stale\n");
+        await mkdir(path.join(root, ".bonka", "build"));
+        await writeFile(path.join(root, ".bonka", "build", "keep.txt"), "keep\n");
         await generateGbaProject(manifestPath);
-        await assert.rejects(access(path.join(root, ".bonka", "stale.txt")));
+        await assert.rejects(access(path.join(root, ".bonka", "graphics", "stale.txt")));
+        assert.equal(await readFile(path.join(root, ".bonka", "build", "keep.txt"), "utf8"), "keep\n");
     });
 });
