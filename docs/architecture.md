@@ -17,7 +17,8 @@ framework below Bonka; Bonka does not replace it.
 | `packages/runtime` | Butano game-side sprite clip and bank helpers | Apache-2.0 |
 
 `apps/editor`, `packages/core`, `packages/project-format`,
-`packages/target-gba` and `packages/runtime` currently contain v0.3 source.
+`packages/target-gba` and `packages/runtime` contain the current v0.4
+development source.
 The runtime has an intentionally narrow public sprite API; do not create empty
 SDK or protocol APIs merely to fill this layout.
 
