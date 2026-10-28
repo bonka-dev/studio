@@ -212,6 +212,7 @@ export function createHistory(initialState, label = "Open project") {
         current,
         entries() {
             return history.map(entry => ({
+                revision: entry.revision,
                 label: entry.label,
                 state: structuredClone(entry.state),
             }));

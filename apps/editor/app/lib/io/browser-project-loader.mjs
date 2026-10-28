@@ -1,7 +1,7 @@
 import { BonkaProjectError, loadBonkaProjectWithAdapter, validateProjectDocuments } from "@bonka/core";
 
 import { createProjectDocuments } from "../project/editor-project.mjs";
-import { createTilesetDocument, readPngDimensions, toResourceId } from "../project/editor-project.mjs";
+import { createSpriteDocument, createTilesetDocument, readPngDimensions, toResourceId } from "../project/editor-project.mjs";
 
 export function normalizePortablePath(value, source) {
     if(typeof value !== "string" || value.startsWith("/") || value.includes("\\")) {
@@ -83,12 +83,16 @@ export async function openBrowserProject(rootHandle) {
     });
 
     const sourceUrls = new Map();
+    const sourceBytes = new Map();
     for(const [key, relativePath] of project.sourcePaths) {
         const handle = await fileHandle(rootHandle, relativePath, relativePath);
-        sourceUrls.set(key, URL.createObjectURL(await handle.getFile()));
+        const file = await handle.getFile();
+        sourceUrls.set(key, URL.createObjectURL(file));
+        sourceBytes.set(key, new Uint8Array(await file.arrayBuffer()));
     }
     project.rootHandle = rootHandle;
     project.sourceUrls = sourceUrls;
+    project.sourceBytes = sourceBytes;
     return project;
 }
 
@@ -183,6 +187,7 @@ export async function importPngTilesets(project, files, { tileWidth = 8, tileHei
 
     project.pendingBinaryWrites ??= new Map();
     project.sourceUrls ??= new Map();
+    project.sourceBytes ??= new Map();
     const scene = project.scenes.get(project.manifest.startScene);
     for(const imported of imports) {
         const { id } = imported.document;
@@ -199,8 +204,73 @@ export async function importPngTilesets(project, files, { tileWidth = 8, tileHei
         if(typeof URL !== "undefined" && URL.createObjectURL) {
             project.sourceUrls.set(`tileset:${id}`, URL.createObjectURL(imported.file));
         }
+        project.sourceBytes.set(`tileset:${id}`, imported.bytes);
     }
     return imports.map(imported => imported.document);
+}
+
+export async function importPngSprites(project, files) {
+    if(! project?.rootHandle) {
+        throw new Error("Open or create a project before importing sprites");
+    }
+    const imports = [];
+    const usedIds = new Set(project.sprites.keys());
+    for(const file of files) {
+        if(! file.name.toLowerCase().endsWith(".png") || (file.type && file.type !== "image/png")) {
+            throw new Error(`${file.name}: select a PNG image`);
+        }
+        const bytes = new Uint8Array(await file.arrayBuffer());
+        const { width, height } = readPngDimensions(bytes);
+        const name = file.name.replace(/\.png$/i, "").trim() || "Sprite";
+        const base = toResourceId(name, "sprite");
+        let id = base;
+        for(let suffix = 2; usedIds.has(id) ||
+            await pathExists(project.rootHandle, `assets/sprites/${id}.sprite.json`) ||
+            await pathExists(project.rootHandle, `assets/sprites/${id}.png`); ++suffix) {
+            id = `${base}-${suffix}`;
+        }
+        usedIds.add(id);
+        imports.push({ document: createSpriteDocument({ id, imageWidth: width, imageHeight: height }), bytes, file });
+    }
+
+    project.pendingBinaryWrites ??= new Map();
+    project.sourceUrls ??= new Map();
+    project.sourceBytes ??= new Map();
+    for(const imported of imports) {
+        const { id } = imported.document;
+        const resourcePath = `assets/sprites/${id}.sprite.json`;
+        const sourcePath = `assets/sprites/${id}.png`;
+        project.sprites.set(id, imported.document);
+        project.resourcePaths.set(`sprite:${id}`, resourcePath);
+        project.sourcePaths.set(`sprite:${id}`, sourcePath);
+        project.pendingBinaryWrites.set(sourcePath, imported.bytes);
+        project.manifest.resources.sprites.push(resourcePath);
+        if(typeof URL !== "undefined" && URL.createObjectURL) {
+            project.sourceUrls.set(`sprite:${id}`, URL.createObjectURL(imported.file));
+        }
+        project.sourceBytes.set(`sprite:${id}`, imported.bytes);
+    }
+    return imports.map(imported => imported.document);
+}
+
+export function removeSprite(project, id) {
+    const sprite = project?.sprites.get(id);
+    if(! sprite) {
+        throw new Error(`Unknown sprite '${id}'`);
+    }
+    const resourcePath = project.resourcePaths.get(`sprite:${id}`);
+    const sourcePath = project.sourcePaths.get(`sprite:${id}`);
+    project.pendingDeletes ??= new Map();
+    project.pendingDeletes.set(resourcePath, false);
+    project.pendingDeletes.set(sourcePath, true);
+    project.pendingBinaryWrites?.delete(sourcePath);
+    const sourceUrl = project.sourceUrls?.get(`sprite:${id}`);
+    if(sourceUrl) URL.revokeObjectURL(sourceUrl);
+    project.sourceUrls?.delete(`sprite:${id}`);
+    project.sprites.delete(id);
+    project.resourcePaths.delete(`sprite:${id}`);
+    project.sourcePaths.delete(`sprite:${id}`);
+    project.manifest.resources.sprites = project.manifest.resources.sprites.filter(path => path !== resourcePath);
 }
 
 export async function createBrowserProject(rootHandle, options) {
@@ -220,6 +290,9 @@ export async function createBrowserProject(rootHandle, options) {
     const scene = project.scenes.get(project.manifest.startScene);
     const scenePath = project.resourcePaths.get(`scene:${scene.id}`);
     await writeText(rootHandle, scenePath, `${JSON.stringify(scene, null, 2)}\n`, true);
+    for(const [id, inputMap] of project.inputMaps) {
+        await writeText(rootHandle, project.resourcePaths.get(`inputMap:${id}`), `${JSON.stringify(inputMap, null, 2)}\n`, true);
+    }
     await writeText(rootHandle, project.manifestPath, `${JSON.stringify(project.manifest, null, 2)}\n`, true);
     return openBrowserProject(rootHandle);
 }
@@ -236,11 +309,17 @@ export async function saveBrowserProject(project) {
     for(const [id, metatile] of project.metatiles) {
         writes.push([project.resourcePaths.get(`metatile:${id}`), metatile]);
     }
+    for(const [id, prefab] of project.prefabs) {
+        writes.push([project.resourcePaths.get(`prefab:${id}`), prefab]);
+    }
     for(const [id, sprite] of project.sprites) {
         writes.push([project.resourcePaths.get(`sprite:${id}`), sprite]);
     }
     for(const [id, entity] of project.entities) {
         writes.push([project.resourcePaths.get(`entity:${id}`), entity]);
+    }
+    for(const [id, inputMap] of project.inputMaps) {
+        writes.push([project.resourcePaths.get(`inputMap:${id}`), inputMap]);
     }
     writes.push([project.manifestPath, project.manifest]);
     const changes = [];
@@ -281,11 +360,30 @@ export async function saveBrowserProject(project) {
             updated: `${JSON.stringify(document, null, 2)}\n`,
         });
     }
+    for(const [relativePath, binary] of project.pendingDeletes ?? []) {
+        let original = null;
+        let existed = false;
+        try {
+            const handle = await fileHandle(project.rootHandle, relativePath, relativePath);
+            const file = await handle.getFile();
+            original = binary ? await file.arrayBuffer() : await file.text();
+            existed = true;
+        } catch(error) {
+            if(error.cause?.name !== "NotFoundError" && error.name !== "NotFoundError") {
+                throw error;
+            }
+        }
+        changes.push({ relativePath, original, existed, deleted: true });
+    }
     const published = [];
     try {
         for(const change of changes) {
             published.push(change);
-            await writeData(project.rootHandle, change.relativePath, change.updated, ! change.existed);
+            if(change.deleted) {
+                if(change.existed) await removeFile(project.rootHandle, change.relativePath);
+            } else {
+                await writeData(project.rootHandle, change.relativePath, change.updated, ! change.existed);
+            }
         }
     } catch(error) {
         const rollbackErrors = [];
@@ -293,7 +391,7 @@ export async function saveBrowserProject(project) {
             try {
                 if(change.existed) {
                     await writeData(project.rootHandle, change.relativePath, change.original);
-                } else {
+                } else if(! change.deleted) {
                     await removeFile(project.rootHandle, change.relativePath);
                 }
             } catch(rollbackError) {
@@ -306,6 +404,7 @@ export async function saveBrowserProject(project) {
         throw error;
     }
     project.pendingBinaryWrites?.clear();
+    project.pendingDeletes?.clear();
 }
 
 export function closeBrowserProject(project) {

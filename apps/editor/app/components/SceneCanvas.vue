@@ -281,8 +281,8 @@ defineExpose({ fitView, resetView, setZoom, zoomIn, zoomOut });
   <section class="panel canvas-panel" aria-label="Scene canvas">
     <div class="canvas-toolbar">
       <div class="tool-group" aria-label="History controls">
-        <button class="action icon-action" type="button" aria-label="Undo" title="Undo (Ctrl+Z)" :disabled="!canUndo" @click="$emit('undo')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m9 14-5-5 5-5" /><path d="M4 9h10a6 6 0 1 1 0 12h-3" /></svg></button>
-        <button class="action icon-action" type="button" aria-label="Redo" title="Redo (Ctrl+Y)" :disabled="!canRedo" @click="$emit('redo')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m15 14 5-5-5-5" /><path d="M20 9H10a6 6 0 1 0 0 12h3" /></svg></button>
+        <button class="action icon-action" type="button" aria-label="Undo" title="Undo (Ctrl+Z)" :disabled="!canUndo" @click="$emit('undo')"><EditorIcon name="undo" /></button>
+        <button class="action icon-action" type="button" aria-label="Redo" title="Redo (Ctrl+Y)" :disabled="!canRedo" @click="$emit('redo')"><EditorIcon name="redo" /></button>
       </div>
       <ToolGroup :model-value="activeTool" @update:model-value="$emit('update:activeTool', $event)" />
     </div>

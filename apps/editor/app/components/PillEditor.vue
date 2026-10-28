@@ -63,7 +63,7 @@ function handleKeydown(event: KeyboardEvent) {
 
 <template>
   <span class="pill-editor" :class="{ editing }">
-    <button class="pill-edit-button" type="button" :disabled="disabled" @click="startEditing">{{ label }}</button>
+    <button class="pill-edit-button" type="button" :disabled="disabled" @click="startEditing"><span class="pill-edit-label">{{ label }}</span></button>
     <select v-if="options" :id="id" ref="control" class="pill-edit-control" :value="modelValue" :disabled="disabled" :aria-label="ariaLabel" @change="finish" @blur="finish" @keydown="handleKeydown">
       <option v-for="option in options" :key="String(option.value)" :value="option.value">{{ option.label }}</option>
     </select>

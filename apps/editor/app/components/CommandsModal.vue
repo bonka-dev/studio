@@ -23,7 +23,7 @@ onBeforeUnmount(() => dialog.value?.close());
   <dialog id="commandsDialog" ref="dialog" aria-labelledby="commandsTitle" @cancel="close" @close="emit('update:open', false)" @click.self="close">
     <div class="commands-header">
       <h2 id="commandsTitle">Commands</h2>
-      <button class="action icon-action" type="button" aria-label="Close commands" title="Close commands" @click="close"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" /></svg></button>
+      <button class="action icon-action" type="button" aria-label="Close commands" title="Close commands" @click="close"><EditorIcon name="close" /></button>
     </div>
     <div class="commands-body">
       <div class="commands-column">
@@ -51,8 +51,6 @@ onBeforeUnmount(() => dialog.value?.close());
           <div><span>Tile tool</span><span><span class="kbd">T</span></span></div>
           <div><span>Object tool</span><span><span class="kbd">O</span></span></div>
           <div><span>Entity tool</span><span><span class="kbd">N</span></span></div>
-          <div><span>Player tool</span><span><span class="kbd">P</span></span></div>
-          <div><span>Enemy tool</span><span><span class="kbd">E</span></span></div>
           <div><span>Erase tool</span><span><span class="kbd">X</span></span></div>
           <div><span>Toggle grid</span><span><span class="kbd">G</span></span></div>
           <div><span>Undo</span><span><span class="kbd">Ctrl</span> + <span class="kbd">Z</span></span></div>

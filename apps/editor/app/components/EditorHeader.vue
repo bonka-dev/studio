@@ -5,12 +5,14 @@ defineProps<{
   busy: boolean;
   saving: boolean;
   showSaved: boolean;
+  workspaceMode: "map" | "entities" | "tiles" | "sprite" | "sprites";
 }>();
 
 defineEmits<{
   save: [];
   close: [];
   commands: [];
+  "update:workspaceMode": [mode: "map" | "entities" | "tiles" | "sprite" | "sprites"];
 }>();
 </script>
 
@@ -22,6 +24,13 @@ defineEmits<{
       <span v-if="saving" class="header-saving-badge">saving...</span>
       <span v-else-if="showSaved" class="header-saved-badge">saved</span>
     </div>
+    <nav class="workspace-tabs" aria-label="Editor workspace">
+      <button class="action" :class="{ primary: workspaceMode === 'map' }" type="button" @click="$emit('update:workspaceMode', 'map')">Map</button>
+      <button class="action" :class="{ primary: workspaceMode === 'entities' }" type="button" @click="$emit('update:workspaceMode', 'entities')">Entities</button>
+      <button class="action" :class="{ primary: workspaceMode === 'tiles' }" type="button" @click="$emit('update:workspaceMode', 'tiles')">Tiles</button>
+      <button class="action" :class="{ primary: workspaceMode === 'sprite' }" type="button" @click="$emit('update:workspaceMode', 'sprite')">Animation</button>
+      <button class="action" :class="{ primary: workspaceMode === 'sprites' }" type="button" @click="$emit('update:workspaceMode', 'sprites')">Sprites</button>
+    </nav>
     <div class="header-actions">
       <button class="action primary" type="button" :disabled="!dirty || busy" @click="$emit('save')">Save project</button>
       <button class="action" type="button" :disabled="busy" @click="$emit('close')">Close</button>

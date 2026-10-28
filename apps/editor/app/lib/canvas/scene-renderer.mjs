@@ -207,12 +207,10 @@ function markerPosition(state, item, layer = null) {
 
 function drawMarker(context, state, item, layer, kind, selected) {
     const position = markerPosition(state, item, layer);
-    const player = kind === "player";
-    const enemy = kind === "enemy";
     context.save();
     context.globalAlpha *= finiteNumber(layer?.opacity, 1);
     context.translate(position.x, position.y);
-    context.fillStyle = player ? "#70d7c7" : enemy ? "#e67661" : "#e7b650";
+    context.fillStyle = kind === "object" ? "#70d7c7" : "#e7b650";
     context.strokeStyle = selected ? "#e7b650" : "#10120f";
     context.lineWidth = selected ? 3 : 2;
     context.beginPath();
@@ -223,7 +221,12 @@ function drawMarker(context, state, item, layer, kind, selected) {
     context.font = "bold 8px monospace";
     context.textAlign = "center";
     context.textBaseline = "middle";
-    context.fillText(player ? "P" : enemy ? "E" : kind === "object" ? "O" : "E", 0, .5);
+    context.fillText(kind === "object" ? "O" : "E", 0, .5);
+    if(kind !== "object") {
+        context.font = "7px monospace";
+        context.textAlign = "left";
+        context.fillText(kind, 10, 3);
+    }
     context.restore();
 }
 

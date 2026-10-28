@@ -74,6 +74,31 @@ export function createTilesetDocument({ id, name, imageWidth, imageHeight, tileW
     };
 }
 
+export function createSpriteDocument({ id, imageWidth, imageHeight }) {
+    return {
+        formatVersion: 1,
+        type: "sprite",
+        id,
+        name: id,
+        source: `${id}.png`,
+        frameSize: { width: imageWidth, height: imageHeight },
+        frameCount: 1,
+        layout: {
+            imageWidth,
+            imageHeight,
+            columns: 1,
+            rows: 1,
+            margin: { x: 0, y: 0 },
+            spacing: { x: 0, y: 0 },
+        },
+        origin: { x: 0, y: 0 },
+        animations: {
+            idle: { loop: true, frames: [{ index: 0, duration: 8 }], layout: { imageWidth, imageHeight, columns: 1, rows: 1, margin: { x: 0, y: 0 }, spacing: { x: 0, y: 0 } } },
+        },
+        gba: { colors: 16, bpp: 4 },
+    };
+}
+
 function validateTileSize(tileSize, source) {
     if(! tileSize || ! Number.isInteger(tileSize.width) || ! Number.isInteger(tileSize.height) ||
         tileSize.width < 1 || tileSize.height < 1) {
@@ -128,6 +153,33 @@ export function addMetatile(project, options) {
     project.resourcePaths.set(`metatile:${id}`, relativePath);
     project.manifest.resources.metatiles.push(relativePath);
     return metatile;
+}
+
+export function createPrefabDocument({ id, name, columns = 1, rows = 1, placements = [] }) {
+    if(! Number.isInteger(columns) || ! Number.isInteger(rows) || columns < 1 || rows < 1) {
+        throw new Error("Prefab columns and rows must be positive integers");
+    }
+    return {
+        formatVersion: 1,
+        type: "prefab",
+        id: toResourceId(id || name, "prefab"),
+        name: name?.trim() || id,
+        columns,
+        rows,
+        placements: clone(placements),
+    };
+}
+
+export function addPrefab(project, options) {
+    const usedIds = new Set(project.prefabs.keys());
+    const id = allocateResourceId(options.id || options.name, usedIds, "prefab");
+    const prefab = createPrefabDocument({ ...options, id });
+    const relativePath = `prefabs/${id}.prefab.json`;
+    project.prefabs.set(id, prefab);
+    project.resourcePaths.set(`prefab:${id}`, relativePath);
+    project.manifest.resources.prefabs ??= [];
+    project.manifest.resources.prefabs.push(relativePath);
+    return prefab;
 }
 
 export function addEntityDefinition(project, { id, name, components } = {}) {
@@ -254,8 +306,11 @@ export function projectToEditorState(project, sourceUrls = new Map()) {
     });
     const objects = flatLayers.flatMap(layer => layer.type === "group" ? [] : layer.objects);
     const metatileDocuments = [...project.metatiles.values()];
+    const prefabDocuments = [...project.prefabs.values()];
     return {
         projectName: project.manifest.name,
+        selectedInputMapId: project.manifest.inputMap ?? "",
+        inputMaps: [...(project.inputMaps ?? new Map()).values()].map(clone),
         scene: {
             id: sourceScene.id,
             name: sourceScene.name,
@@ -286,6 +341,7 @@ export function projectToEditorState(project, sourceUrls = new Map()) {
             visible: true,
             x: instance.cell.x,
             y: instance.cell.y,
+            ...(instance.facingAngle === undefined ? {} : { facingAngle: instance.facingAngle }),
             ...(instance.overrides === undefined ? {} : { overrides: clone(instance.overrides) }),
         })),
         tilesets: tilesetDocuments.map(tileset => ({
@@ -315,11 +371,21 @@ export function projectToEditorState(project, sourceUrls = new Map()) {
             data: clone(metatile.tiles),
             collisionMap: [...metatile.collision],
         })),
+        prefabs: prefabDocuments.map(prefab => ({
+            id: prefab.id,
+            name: prefab.name,
+            columns: prefab.columns,
+            rows: prefab.rows,
+            placements: clone(prefab.placements),
+        })),
     };
 }
 
 export function applyEditorState(project, state) {
     project.manifest.name = state.projectName;
+    if(state.selectedInputMapId) project.manifest.inputMap = state.selectedInputMapId;
+    else delete project.manifest.inputMap;
+    project.inputMaps = new Map((state.inputMaps ?? []).map(inputMap => [inputMap.id, clone(inputMap)]));
     const scene = project.scenes.get(project.manifest.startScene);
     Object.assign(scene, {
         name: state.scene.name,
@@ -334,6 +400,7 @@ export function applyEditorState(project, state) {
             id: instance.id,
             definition: instance.definition,
             cell: { x: instance.x, y: instance.y },
+            ...(instance.facingAngle === undefined ? {} : { facingAngle: instance.facingAngle }),
             ...(instance.overrides === undefined ? {} : { overrides: clone(instance.overrides) }),
         })),
         ...(state.scene.sourceHasEditor === false ? {} : {
@@ -381,6 +448,18 @@ export function applyEditorState(project, state) {
             collision: [...editorMetatile.collisionMap],
         });
     }
+    for(const editorPrefab of state.prefabs) {
+        const prefab = project.prefabs.get(editorPrefab.id);
+        if(! prefab) {
+            throw new Error(`Prefab '${editorPrefab.id}' is not part of the opened project`);
+        }
+        Object.assign(prefab, {
+            name: editorPrefab.name,
+            columns: editorPrefab.columns,
+            rows: editorPrefab.rows,
+            placements: clone(editorPrefab.placements),
+        });
+    }
     return validateProjectDocuments(project);
 }
 
@@ -391,6 +470,19 @@ export function createProjectDocuments({
     bonkaVersion = "0.3.0-dev",
 } = {}) {
     const scenePath = `scenes/${sceneId}.scene.json`;
+    const inputMapPath = "input-maps/default.input-map.json";
+    const inputMap = {
+        formatVersion: 1,
+        type: "inputMap",
+        id: "default",
+        name: "Default",
+        actions: [
+            { id: "move-up", bindings: [{ platform: "gba", control: "up", trigger: "held" }] },
+            { id: "move-down", bindings: [{ platform: "gba", control: "down", trigger: "held" }] },
+            { id: "move-left", bindings: [{ platform: "gba", control: "left", trigger: "held" }] },
+            { id: "move-right", bindings: [{ platform: "gba", control: "right", trigger: "held" }] },
+        ],
+    };
     const scene = {
         formatVersion: 1,
         type: "scene",
@@ -431,21 +523,26 @@ export function createProjectDocuments({
             name,
             engine: "butano",
             startScene: sceneId,
+            inputMap: inputMap.id,
             createdWith: { bonka: bonkaVersion },
             resources: {
                 scenes: [scenePath],
                 tilesets: [],
                 metatiles: [],
+                prefabs: [],
                 sprites: [],
                 entities: [],
+                inputMaps: [inputMapPath],
             },
         },
         scenes: new Map([[sceneId, scene]]),
         tilesets: new Map(),
         metatiles: new Map(),
+        prefabs: new Map(),
         sprites: new Map(),
         entities: new Map(),
-        resourcePaths: new Map([[`scene:${sceneId}`, scenePath]]),
+        inputMaps: new Map([[inputMap.id, inputMap]]),
+        resourcePaths: new Map([[`scene:${sceneId}`, scenePath], [`inputMap:${inputMap.id}`, inputMapPath]]),
         sourcePaths: new Map(),
     };
     return validateProjectDocuments(project);
