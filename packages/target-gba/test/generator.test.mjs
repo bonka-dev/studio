@@ -438,9 +438,7 @@ test("generates disposable Butano inputs from a Project Format v1 project", asyn
         assert.match(startSceneEntitiesHeader, /\{ "sample-entity", bonka_sprite_sample_sprite_clips::clip_left, -184, -188, 180, 4 \}/);
         assert.match(startSceneEntitiesHeader, /\{ "same-depth-entity", bonka_sprite_sample_sprite_clips::clip_left, -216, -172, 180, 4 \}/);
         assert.match(startSceneEntitiesHeader, /\{ "front-entity", bonka_sprite_sample_sprite_clips::clip_left, -200, -172, 180, 4 \}/);
-        assert.match(startSceneEntitiesHeader, /sprites\.emplace_back\(bonka_sprite_sample_sprite_clips::clip_left, -184, -188\)/);
-        assert.match(startSceneEntitiesHeader, /update_start_scene_sprites/);
-        assert.match(startSceneEntitiesHeader, /sprite\.update\(\)/);
+        assert.doesNotMatch(startSceneEntitiesHeader, /create_start_scene_sprites|update_start_scene_sprites|sprites\.emplace_back|sprite\.update/);
 
         const inputHeader = await readFile(path.join(root, ".bonka", "include", "bonka_selected_input.h"), "utf8");
         assert.match(inputHeader, /selected_input_map_id = "default"/);
