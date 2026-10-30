@@ -11,10 +11,12 @@ const props = withDefaults(defineProps<{
   showEditor?: boolean;
   showLibrary?: boolean;
   showControls?: boolean;
+  compact?: boolean;
 }>(), {
   showEditor: true,
   showLibrary: true,
   showControls: true,
+  compact: false,
 });
 
 const emit = defineEmits<{
@@ -65,14 +67,14 @@ function previewTile(index: number) {
     <div v-if="showEditor !== false" class="inline-actions">
       <button class="action" type="button" :aria-pressed="mode === 'collision'" @click="$emit('update:mode', mode === 'tiles' ? 'collision' : 'tiles')">{{ mode === "tiles" ? "Paint mode" : "Collision mode" }}</button>
     </div>
-    <div v-if="showEditor !== false && selected" class="metatile-editor" role="grid" aria-label="Metatile cell editor" :style="{ gridTemplateColumns: `repeat(${selected.columns}, minmax(30px, 1fr))` }">
+    <div v-if="showEditor !== false && selected" class="metatile-editor" :class="{ 'metatile-editor--compact': compact }" role="grid" aria-label="Metatile cell editor" :style="{ '--metatile-columns': selected.columns, '--metatile-rows': selected.rows }">
       <button v-for="(tile, index) in selected.data" :key="index" class="metatile-cell" type="button" :aria-label="`Metatile cell ${index}`" :title="tile ? `${tile.tileset} / tile ${tile.tile}` : 'Empty cell'" @pointerenter="previewIndex = index" @pointerleave="previewIndex = null" @click="$emit('activate-cell', { index, clear: false })" @contextmenu.prevent="$emit('activate-cell', { index, clear: true })">
         <TilePreview v-if="tile && tilesetById(tile.tileset)" :tileset="tilesetById(tile.tileset)" :tile="tile.tile" @error="$emit('error', $event)" />
         <TilePreview v-if="previewTile(index)" class="metatile-placement-preview" :tileset="previewTile(index).tileset" :tile="previewTile(index).tile" @error="$emit('error', $event)" />
         <span v-if="selected.collisionMap[index] === 1" class="collision-overlay">C</span>
       </button>
     </div>
-    <div v-else-if="showEditor !== false" class="metatile-editor" role="grid" aria-label="Metatile cell editor"><p>Select or add a metatile to compose it.</p></div>
+    <div v-else-if="showEditor !== false" class="metatile-editor" :class="{ 'metatile-editor--compact': compact }" role="grid" aria-label="Metatile cell editor" :style="{ '--metatile-columns': 1, '--metatile-rows': 1 }"><p>Select or add a metatile to compose it.</p></div>
     <div v-if="showLibrary !== false" class="resource-list" role="list" aria-label="Metatiles">
       <button v-for="metatile in metatiles" :key="metatile.id" class="resource-button" :class="{ selected: metatile.id === selectedMetatileId }" type="button" @click="$emit('select', metatile.id)">
         <MetatilePreview :metatile="metatile" :tilesets="tilesets" />

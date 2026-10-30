@@ -9,6 +9,7 @@ import {
   openBrowserProject,
   saveBrowserProject,
   removeSprite,
+  removeTileset,
 } from "./lib/io/browser-project-loader.mjs";
 import { addEntityDefinition, addEntityInstance, addMetatile, addPrefab, applyEditorState, projectToEditorState, removeEntityInstance, toResourceId } from "./lib/project/editor-project.mjs";
 import { createGroup, createObjectLayer, createTileLayer, getLayerParent, moveLayer, removeLayer, traverseLayers } from "./lib/workspace/editor-commands.mjs";
@@ -1065,6 +1066,58 @@ function selectTile(selection: { tileset: string; startTile: number; columns: nu
   status.value = `Selected ${tileset?.name ?? selection.tileset}, ${selection.columns}x${selection.rows} tiles.`;
 }
 
+function selectTileset(id: string) {
+  const tileset = tilesets.value.find(item => item.id === id);
+  if(!tileset) return;
+  selectTile({ tileset: id, startTile: 0, columns: 1, rows: 1 });
+}
+
+function renameTileset(id: string, name: string) {
+  const tileset = tilesets.value.find(item => item.id === id);
+  if(!tileset || !name || name === tileset.name) return;
+  commit({
+    ...editorState.value,
+    tilesets: editorState.value.tilesets.map(item => item.id === id ? { ...item, name } : item),
+  }, `Rename ${tileset.name} tileset`);
+}
+
+function removeProjectTileset(id: string) {
+  const references = editorState.value.metatiles.filter(metatile => metatile.data.some((tile: any) => tile?.tileset === id));
+  if(references.length) {
+    const names = references.map(metatile => metatile.name).join(", ");
+    status.value = `Cannot delete '${id}': used by ${names}.`;
+    requestConfirmation({
+      title: "Tileset is in use",
+      message: `Cannot delete tileset '${id}'. It is used by: ${names}. Remove or replace those metatile tiles first.`,
+      confirmLabel: "Close",
+      action: () => {},
+    });
+    return;
+  }
+  requestConfirmation({
+    title: "Delete tileset?",
+    message: `Delete tileset '${id}' and its source PNG?`,
+    confirmLabel: "Delete tileset",
+    danger: true,
+    action: () => {
+      try {
+        applyEditorState(project.value, editorState.value);
+        removeTileset(project.value, id);
+        const nextTilesets = editorState.value.tilesets.filter(item => item.id !== id);
+        commit({
+          ...editorState.value,
+          tilesets: nextTilesets,
+          scene: { ...editorState.value.scene, tilesetIds: editorState.value.scene.tilesetIds.filter((tilesetId: string) => tilesetId !== id) },
+        }, `Delete ${id} tileset`);
+        selectedTile.value = nextTilesets[0] ? { tileset: nextTilesets[0].id, startTile: 0, columns: 1, rows: 1 } : null;
+        status.value = `Deleted ${id}. Save to remove its files.`;
+      } catch(error: any) {
+        status.value = error?.message ?? `Could not delete ${id}.`;
+      }
+    },
+  });
+}
+
 function addNewMetatile(options: { name: string; columns: number; rows: number }) {
   try {
     applyEditorState(project.value, editorState.value);
@@ -1260,7 +1313,7 @@ function confirmAction() {
 
     <WorkspaceEntities v-else-if="workspaceMode === 'entities'" :definitions="entityDefinitions" :selected-id="selectedEntityDefinitionId" :sprites="sprites" :source-urls="project.sourceUrls" :instances="editorState?.entities ?? []" :input-maps="editorState?.inputMaps ?? []" :selected-input-map-id="editorState?.selectedInputMapId ?? ''" :history-entries="historyEntries" :history-index="historyIndex" @create="addGenericEntityDefinition" @select="selectedEntityDefinitionId = $event" @update-name="updateEntityName" @update-sprite="updateEntitySprite" @update-sprite-mode="updateEntitySpriteMode" @update-animation="updateEntityAnimation" @update-directional-set="updateEntityDirectionalSet" @update-behavior="updateEntityBehavior" @update-input-actions="updateEntityInputActions" @add-directional-movement="addDirectionalMovement" @update-directional-movement="updateDirectionalMovement" @update-collider="updateEntityCollider" @add-input-map="addInputMap" @select-input-map="selectInputMap" @update-input-map="updateInputMap" @open-instance="openSceneEntity" @go-to-history="goToHistory" />
 
-    <WorkspaceTiles v-else-if="workspaceMode === 'tiles'" :state="editorState" :tilesets="tilesets" :selected-tile="selectedTile" :selected-metatile-id="selectedMetatileId" :selected-prefab-id="selectedPrefabId" :metatile-mode="metatileMode" :busy="busy" @add-metatile="addNewMetatile" @select-metatile="selectMetatile" @activate-metatile-cell="activateMetatileCell" @update:metatile-mode="metatileMode = $event" @error="setCanvasError" @import-tilesets="importTilesets" @select-tile="selectTile" @add-prefab="addNewPrefab" @select-prefab="selectPrefab" @activate-prefab-cell="activatePrefabCell" />
+    <WorkspaceTiles v-else-if="workspaceMode === 'tiles'" :state="editorState" :tilesets="tilesets" :selected-tile="selectedTile" :selected-metatile-id="selectedMetatileId" :selected-prefab-id="selectedPrefabId" :metatile-mode="metatileMode" :busy="busy" @add-metatile="addNewMetatile" @select-metatile="selectMetatile" @activate-metatile-cell="activateMetatileCell" @update:metatile-mode="metatileMode = $event" @error="setCanvasError" @import-tilesets="importTilesets" @select-tileset="selectTileset" @rename-tileset="renameTileset" @remove-tileset="removeProjectTileset" @select-tile="selectTile" @add-prefab="addNewPrefab" @select-prefab="selectPrefab" @activate-prefab-cell="activatePrefabCell" />
     <WorkspaceAnimation v-else-if="workspaceMode === 'sprite'" :sprites="sprites" :selected-id="selectedSpriteId" :source-urls="project.sourceUrls" :busy="busy" @import="importSprites" @create="createBlankSprite" @select="selectedSpriteId = $event" @update="updateSprite" @rename="renameSprite" @rename-animation="renameSpriteAnimation" @remove-animation="removeSpriteAnimation" @rename-directional-set="renameSpriteDirectionalSet" @remove-directional-set="removeSpriteDirectionalSet" @remove-sprite="removeProjectSprite" />
     <WorkspaceSpriteAsset v-else ref="spriteAssetCanvas" :sprites="sprites" :selected-id="selectedSpriteId" :source-urls="project.sourceUrls" :busy="busy" :zoom="spriteAssetZoom" :can-undo="canUndo" :can-redo="canRedo" :history-entries="historyEntries" :history-index="historyIndex" @zoom-change="spriteAssetZoom = $event" @undo="undo" @redo="redo" @history="commitSpriteHistory" @go-to-history="goToHistory" @import="importSprites" @create-blank="createBlankSprite" @remove="removeProjectSprite" @rename="renameSprite" @select="selectedSpriteId = $event" @update="updateSprite" />
 

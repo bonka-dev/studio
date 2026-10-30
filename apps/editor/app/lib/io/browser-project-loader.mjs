@@ -209,6 +209,30 @@ export async function importPngTilesets(project, files, { tileWidth = 8, tileHei
     return imports.map(imported => imported.document);
 }
 
+export function removeTileset(project, id) {
+    const tileset = project?.tilesets.get(id);
+    if(! tileset) {
+        throw new Error(`Unknown tileset '${id}'`);
+    }
+    const resourcePath = project.resourcePaths.get(`tileset:${id}`);
+    const sourcePath = project.sourcePaths.get(`tileset:${id}`);
+    project.pendingDeletes ??= new Map();
+    project.pendingDeletes.set(resourcePath, false);
+    project.pendingDeletes.set(sourcePath, true);
+    project.pendingBinaryWrites?.delete(sourcePath);
+    const sourceUrl = project.sourceUrls?.get(`tileset:${id}`);
+    if(sourceUrl) URL.revokeObjectURL(sourceUrl);
+    project.sourceUrls?.delete(`tileset:${id}`);
+    project.sourceBytes?.delete(`tileset:${id}`);
+    project.tilesets.delete(id);
+    project.resourcePaths.delete(`tileset:${id}`);
+    project.sourcePaths.delete(`tileset:${id}`);
+    project.manifest.resources.tilesets = project.manifest.resources.tilesets.filter(path => path !== resourcePath);
+    for(const scene of project.scenes.values()) {
+        scene.tilesets = scene.tilesets.filter(tilesetId => tilesetId !== id);
+    }
+}
+
 export async function importPngSprites(project, files) {
     if(! project?.rootHandle) {
         throw new Error("Open or create a project before importing sprites");
