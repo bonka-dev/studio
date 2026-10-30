@@ -10,11 +10,11 @@ const props = withDefaults(defineProps<{
   busy: boolean;
   showEditor?: boolean;
   showLibrary?: boolean;
-  headerless?: boolean;
+  showControls?: boolean;
 }>(), {
   showEditor: true,
   showLibrary: true,
-  headerless: false,
+  showControls: true,
 });
 
 const emit = defineEmits<{
@@ -54,8 +54,7 @@ function previewTile(index: number) {
 </script>
 
 <template>
-  <EditorPanel title="Metatiles" class="metatile-panel" :headerless="headerless">
-    <template v-if="showLibrary !== false">
+  <template v-if="showLibrary !== false && showControls !== false">
       <label class="field field-stack" for="metatile-name"><span>Name</span><PillEditor id="metatile-name" :model-value="name" aria-label="Metatile name" @change="name = String($event)" /></label>
       <div class="field-pair">
         <label class="field field-stack" for="metatile-columns"><span>Columns</span><PillEditor id="metatile-columns" :model-value="columns" type="number" aria-label="Metatile columns" @change="columns = Math.max(1, Number($event))" /></label>
@@ -80,5 +79,4 @@ function previewTile(index: number) {
         <span>{{ metatile.name }}</span>
       </button>
     </div>
-  </EditorPanel>
 </template>

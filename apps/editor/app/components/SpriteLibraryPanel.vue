@@ -14,8 +14,7 @@ function importSprites(event: Event) {
 </script>
 
 <template>
-  <EditorPanel title="Sprites" class="sprite-library">
-    <button class="action" type="button" :disabled="busy" @click="spriteInput?.click()">Import PNG</button>
+  <button class="action" type="button" :disabled="busy" @click="spriteInput?.click()">Import PNG</button>
     <input ref="spriteInput" type="file" accept="image/png,.png" multiple hidden @change="importSprites">
     <button class="action" type="button" :disabled="busy" @click="$emit('create')">New 16x16 sprite</button>
     <div class="sprite-resource-list">
@@ -27,5 +26,4 @@ function importSprites(event: Event) {
         </div>
       </div>
     </div>
-  </EditorPanel>
 </template>

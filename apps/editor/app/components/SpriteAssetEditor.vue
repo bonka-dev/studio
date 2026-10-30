@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, ref, watch } from "vue";
+import { usePanelStack } from "../composables/use-panel-stack";
 
 const props = defineProps<{ sprites: any[]; selectedId: string; sourceUrls: Map<string, string>; busy?: boolean; zoom: number; canUndo: boolean; canRedo: boolean; historyEntries: { revision: number; label: string }[]; historyIndex: number }>();
 const emit = defineEmits(["import", "create-blank", "remove", "rename", "select", "update", "zoom-change", "undo", "redo", "history", "go-to-history"]);
@@ -10,6 +11,8 @@ const paletteInput = ref<HTMLInputElement | null>(null);
 const selectedLayerId = ref("");
 const palette = ref(["#000000", "#ffffff", "#7b1e1e", "#d9573f", "#e8b04a", "#8cab4b", "#377f68", "#3d6f9e", "#553f79", "#9b5b92", "#6a4a2f", "#8f6947", "#4b4f55", "#7f8587", "#b6b6a1", "#d8d8c4"]);
 const selectedColorIndex = ref(1);
+const leftPanels = usePanelStack("bonka.panel-order.sprite-asset-left", ["library", "layers", "history"]);
+const rightPanels = usePanelStack("bonka.panel-order.sprite-asset-right", ["preview", "palette"]);
 const activeTool = ref<"pen" | "eraser" | "eyedropper" | "selection">("pen");
 const selection = ref<{ x: number; y: number; width: number; height: number } | null>(null);
 const previewZoom = ref(1);
@@ -78,10 +81,11 @@ function render() {
 }
 
 function renderCanvas(target: HTMLCanvasElement | null, value: any, sprite: any, width: number, height: number, showSelection: boolean, includeReferenceLayers: boolean) {
-  if(!target) return;
+  if(!(target instanceof HTMLCanvasElement)) return;
   target.width = width;
   target.height = height;
-  const context = target.getContext("2d")!;
+  const context = target.getContext("2d");
+  if(!context) return;
   context.clearRect(0, 0, width, height);
   if(!value) {
     const imageUrl = props.sourceUrls.get(`sprite:${sprite.id}`);
@@ -415,8 +419,9 @@ defineExpose({
 <template>
   <section class="workspace-layout sprite-asset-editor" aria-label="Sprite asset editor">
     <aside class="sprite-asset-sidebar workspace-stack workspace-region--left">
-      <SpriteLibraryPanel :sprites="sprites" :selected-id="selectedId" :source-urls="sourceUrls" :busy="busy" @import="emit('import', $event)" @create="emit('create-blank')" @remove="emit('remove', $event)" @rename="(id, name) => emit('rename', id, name)" @select="emit('select', $event)" />
-      <EditorPanel title="Layers">
+       <div v-for="panel in leftPanels.panels" :key="panel.key" v-bind="leftPanels.dragItem(panel.key)" class="panel-stack-item" :class="{ 'is-dragging': leftPanels.dragging === panel.key, 'is-switched': leftPanels.switched === panel.key }">
+      <EditorPanel v-if="panel.key === 'library'" title="Sprites" class="sprite-library"><SpriteLibraryPanel :sprites="sprites" :selected-id="selectedId" :source-urls="sourceUrls" :busy="busy" @import="emit('import', $event)" @create="emit('create-blank')" @remove="emit('remove', $event)" @rename="(id, name) => emit('rename', id, name)" @select="emit('select', $event)" /></EditorPanel>
+      <EditorPanel v-else-if="panel.key === 'layers'" title="Layers">
         <p v-if="!selected" class="empty-note">Select a sprite to view its layers.</p>
         <p v-else-if="!authoring" class="empty-note">No layers yet. Paint the sprite to begin.</p>
         <div v-else class="sprite-authoring-layers">
@@ -437,7 +442,8 @@ defineExpose({
         </div>
         <input ref="backgroundInput" type="file" accept="image/*" hidden @change="importBackground">
       </EditorPanel>
-      <HistoryPanel :entries="historyEntries" :current-index="historyIndex" @go-to="emit('go-to-history', $event)" />
+      <EditorPanel v-else title="History" class="history-panel"><HistoryPanel :entries="historyEntries" :current-index="historyIndex" @go-to="emit('go-to-history', $event)" /></EditorPanel>
+      </div>
     </aside>
     <template v-if="selected">
       <section class="panel sprite-pixel-panel workspace-region--main" aria-label="Sprite canvas">
@@ -456,7 +462,8 @@ defineExpose({
         <div class="sprite-pixel-content"><canvas ref="canvas" class="sprite-pixel-canvas" :style="{ width: `${(authoring?.width ?? sourceSize(selected).width) * zoom}px`, height: `${(authoring?.height ?? sourceSize(selected).height) * zoom}px` }" @contextmenu.prevent @wheel.prevent="onWheel" @pointerdown="onPointerDown" @pointermove="onPointerMove" @pointerup="finishInteraction" @pointercancel="finishInteraction" /></div>
       </section>
       <aside class="sprite-asset-right-stack workspace-stack workspace-region--right">
-      <EditorPanel title="Preview" class="sprite-preview-panel sprite-asset-preview-panel">
+       <div v-for="panel in rightPanels.panels" :key="panel.key" v-bind="rightPanels.dragItem(panel.key)" class="panel-stack-item" :class="{ 'is-dragging': rightPanels.dragging === panel.key, 'is-switched': rightPanels.switched === panel.key }">
+      <EditorPanel v-if="panel.key === 'preview'" title="Preview" class="sprite-preview-panel sprite-asset-preview-panel">
         <template #actions>
           <div class="sprite-preview-actions">
             <button class="action" :class="{ active: previewZoom === .25 }" type="button" @click="previewZoom = .25">.25x</button>
@@ -468,7 +475,7 @@ defineExpose({
         </template>
         <canvas ref="previewCanvas" class="sprite-asset-preview" :style="{ width: `${(authoring?.width ?? sourceSize(selected).width) * previewZoom}px`, height: `${(authoring?.height ?? sourceSize(selected).height) * previewZoom}px` }" />
       </EditorPanel>
-      <EditorPanel title="Palette" class="sprite-palette-panel">
+      <EditorPanel v-else title="Palette" class="sprite-palette-panel">
         <div v-for="(color, index) in palette" :key="index" class="sprite-color-wrap">
           <button class="sprite-color" :class="{ active: index === selectedColorIndex }" :style="{ backgroundColor: color }" :title="color" type="button" @click="selectedColorIndex = index" />
           <button class="sprite-color-remove" type="button" :disabled="palette.length === 1" :aria-label="`Remove ${color}`" :title="`Remove ${color}`" @click="removePaletteColor(index)">x</button>
@@ -477,6 +484,7 @@ defineExpose({
         <input ref="paletteInput" type="color" hidden @change="addPaletteColor">
         <small>LMB draws on the sprite. RMB erases. Alt+RMB copies the background color into the selected palette slot. Alt+LMB drags, Alt+scroll scales the selected background, Shift+scroll changes drawing opacity and Ctrl+scroll changes background opacity.</small>
       </EditorPanel>
+      </div>
       </aside>
     </template>
     <p v-else class="empty-note workspace-region--main">Create or import a PNG sprite to begin.</p>

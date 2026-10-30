@@ -207,7 +207,7 @@ function directionalSets(asset: string) {
         </div>
       </EditorPanel>
       <EditorPanel v-else title="Input boundary" :collapsible="false"><p class="entity-help">The selected map is stored in <code>project.inputMap</code>. Actions are generic; bindings are explicitly GBA-only.</p></EditorPanel>
-      <HistoryPanel :entries="historyEntries" :current-index="historyIndex" @go-to="emit('go-to-history', $event)" />
+      <EditorPanel title="History" class="history-panel"><HistoryPanel :entries="historyEntries" :current-index="historyIndex" @go-to="emit('go-to-history', $event)" /></EditorPanel>
     </aside>
   </section>
 </template>

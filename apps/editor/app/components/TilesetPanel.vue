@@ -7,7 +7,6 @@ const props = defineProps<{
   maxColumns: number;
   maxRows: number;
   busy: boolean;
-  headerless?: boolean;
 }>();
 const emit = defineEmits<{
   import: [files: File[]];
@@ -66,8 +65,7 @@ function endSelection() {
 </script>
 
 <template>
-  <EditorPanel title="Tileset" class="tileset-panel" :headerless="headerless">
-    <div class="palette-controls">
+  <div class="palette-controls">
       <label class="visually-hidden" for="tile-search">Search tiles</label>
       <input id="tile-search" v-model="search" class="search" type="search" placeholder="Search tiles" autocomplete="off">
       <button class="action" type="button" :disabled="busy" @click="fileInput?.click()">Import PNG</button>
@@ -85,5 +83,4 @@ function endSelection() {
         </div>
       </details>
     </div>
-  </EditorPanel>
 </template>
