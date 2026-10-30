@@ -725,7 +725,7 @@ section.panel.static.sprite-sheet { overflow: hidden; padding-bottom: 45px; }
     text-overflow: ellipsis;
     white-space: nowrap;
 }
-.pill-edit-button:hover { box-shadow: inset 0 0 0 1px var(--cyan); }
+.pill-edit-button:hover { background-color: var(--panel); }
 .pill-edit-label { display: block; min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pill-editor:not(.editing) .pill-edit-control { display: none; }
 .pill-editor.editing .pill-edit-button { display: none; }
