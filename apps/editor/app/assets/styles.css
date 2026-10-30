@@ -335,8 +335,6 @@ input[type="range"] {
 .action.header-help svg {
     width: 16px;
     height: 16px;
-    fill: currentColor !important;
-    stroke: none !important;
 }
 
 .workspace-host {
@@ -683,21 +681,14 @@ section.panel.static.sprite-sheet { overflow: hidden; padding-bottom: 45px; }
     font-size: 16px;
 }
 
-.icon-action svg {
+.editor-icon {
     width: 16px;
     height: 16px;
-    fill: none;
-    stroke: currentColor;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-    stroke-width: 2;
 }
 
-/* Bootstrap icons are filled paths, not the stroke-based editor icon style. */
-.icon-action svg.bi {
-    fill: currentColor;
-    stroke: none;
-}
+.editor-icon--fill { fill: currentColor; }
+.editor-icon--stroke { fill: none; stroke: currentColor; stroke-width: 2; }
+.editor-icon--rounded { stroke-linecap: round; stroke-linejoin: round; }
 
 .field {
     display: grid;
@@ -768,7 +759,6 @@ section.panel.static.sprite-sheet { overflow: hidden; padding-bottom: 45px; }
 
 .outliner-actions { display: flex; justify-content: flex-end; gap: 4px; }
 .outliner-actions .icon-action { width: 26px; min-height: 26px; }
-.outliner-actions .icon-action svg { fill: currentColor; stroke: none; }
 .outliner-actions .action:not(.danger):not(:disabled):hover { color: var(--cyan); }
 .outliner-actions .action.group-action:not(:disabled):hover { color: var(--gold); }
 
