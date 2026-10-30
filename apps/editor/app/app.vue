@@ -13,8 +13,6 @@ import {
 import { addEntityDefinition, addEntityInstance, addMetatile, addPrefab, applyEditorState, projectToEditorState, removeEntityInstance, toResourceId } from "./lib/project/editor-project.mjs";
 import { createGroup, createObjectLayer, createTileLayer, getLayerParent, moveLayer, removeLayer, traverseLayers } from "./lib/workspace/editor-commands.mjs";
 import { useProjectHistory } from "./composables/use-project-history";
-import { useWorkspacePanelLayout } from "./composables/use-workspace-panel-layout";
-import type { WorkspacePanel } from "./composables/use-workspace-panel-layout";
 import { flattenSpriteAuthoring } from "./lib/sprites/flatten-authoring.mjs";
 import { cellFromPixel, flattenObjectLayers, flattenTileLayers, removePlacement, upsertPlacement } from "./lib/canvas/scene-renderer.mjs";
 
@@ -46,19 +44,6 @@ const flipY = ref(false);
 const brushSpacing = ref(1);
 const activeTool = ref("tile");
 const workspaceMode = ref<"map" | "entities" | "tiles" | "sprite" | "sprites">("map");
-const tilesWorkspaceView = ref<"tilesets" | "metatile">("tilesets");
-const tilesWorkspaceTabs = [{ id: "tilesets", label: "Tilesets" }, { id: "metatile", label: "Metatile editor" }];
-const mapPanelTabs = [{ id: "project", label: "Project" }, { id: "prefabs", label: "Prefabs" }, { id: "metatiles", label: "Metatiles" }];
-const mapPanelLabels: Record<string, string> = Object.fromEntries(mapPanelTabs.map(tab => [tab.id, tab.label]));
-const mapRightPanelTabs = [
-  { id: "outliner", label: "Outliner" },
-  { id: "view", label: "View" },
-  { id: "placement", label: "Entity placement" },
-  { id: "properties", label: "Properties" },
-  { id: "history", label: "History" },
-  { id: "selection", label: "Selection" },
-];
-const mapRightPanelLabels: Record<string, string> = Object.fromEntries(mapRightPanelTabs.map(tab => [tab.id, tab.label]));
 const selection = ref<{ kind: "object" | "entity"; id: string; layerId?: string } | null>(null);
 const selectedEntityDefinitionId = ref("");
 const selectedSpriteId = ref("");
@@ -72,27 +57,6 @@ const historyIndex = projectHistory.index;
 const canUndo = projectHistory.canUndo;
 const canRedo = projectHistory.canRedo;
 const activeLayer = computed(() => findLayer(editorState.value?.layers ?? [], activeLayerId.value ?? ""));
-const mapLeftPanels = useWorkspacePanelLayout("bonka.panel-layout.map-left.v1", [
-  { key: "project", tabs: ["project"] },
-  { key: "resources", tabs: ["prefabs", "metatiles"] },
-], ["project", "prefabs", "metatiles"]);
-const mapRightPanels = useWorkspacePanelLayout("bonka.panel-layout.map-right.v1", mapRightPanelTabs.map(tab => ({ key: tab.id, tabs: [tab.id] })), mapRightPanelTabs.map(tab => tab.id));
-
-function tabsForMapPanel(panel: WorkspacePanel) {
-  return panel.tabs.length > 1 ? panel.tabs.map(id => ({ id, label: mapPanelLabels[id] ?? id })) : [];
-}
-
-function titleForMapPanel(panel: WorkspacePanel) {
-  return panel.tabs.length === 1 ? mapPanelLabels[panel.tabs[0]] ?? panel.tabs[0] : "Map panels";
-}
-
-function tabsForMapRightPanel(panel: WorkspacePanel) {
-  return panel.tabs.length > 1 ? panel.tabs.map(id => ({ id, label: mapRightPanelLabels[id] ?? id })) : [];
-}
-
-function titleForMapRightPanel(panel: WorkspacePanel) {
-  return panel.tabs.length === 1 ? mapRightPanelLabels[panel.tabs[0]] ?? panel.tabs[0] : "Map panels";
-}
 useHead(() => ({
   title: project.value
     ? `${dirty.value ? "* " : ""}${editorState.value?.projectName || "Untitled Project"} • Bonka`
@@ -1292,75 +1256,13 @@ function confirmAction() {
   <NuxtLayout v-else name="editor" :project-name="editorState?.projectName ?? ''" :dirty="dirty" :busy="busy" :saving="saving" :show-saved="showSaved" :workspace-mode="workspaceMode" @update:workspace-mode="workspaceMode = $event" @save="saveProject" @close="closeProject" @commands="commandsOpen = true">
     <template #workspace>
 
-    <div v-if="workspaceMode === 'map'" class="workspace-layout map-workspace">
-      <aside class="left-stack workspace-stack workspace-region--left" aria-label="Project resources" @dragover="mapLeftPanels.allowDockDrop" @drop="mapLeftPanels.detachTab">
-        <div v-for="panel in mapLeftPanels.panels" :key="panel.key" v-bind="mapLeftPanels.dragItem(panel.key)" class="panel-stack-item" :class="{ 'is-dragging': mapLeftPanels.dragging === panel.key, 'is-switched': mapLeftPanels.switched === panel.key, 'is-dock-target': mapLeftPanels.dockTarget === panel.key, 'is-insert-after': mapLeftPanels.insertionAfter === panel.key }">
-          <EditorPanel :title="titleForMapPanel(panel)" :class="{ 'project-panel': mapLeftPanels.activeTab(panel) === 'project', 'map-resource-palette': mapLeftPanels.activeTab(panel) !== 'project' }" :tabs="tabsForMapPanel(panel)" :active-tab="mapLeftPanels.activeTab(panel)" :draggable-tabs="panel.tabs.length > 1" dockable @update:active-tab="mapLeftPanels.setActiveTab(panel, $event)" @tab-drag-start="(tab, event) => mapLeftPanels.startTabDrag(tab, event)" @tab-drag-end="mapLeftPanels.endTabDrag" @tab-drag-over="mapLeftPanels.allowDockDrop($event, panel.key)" @tab-drop="mapLeftPanels.dockIntoPanel(panel.key, $event)">
-            <template v-if="mapLeftPanels.activeTab(panel) === 'project'">
-              <label class="field field-stack" for="project-name">
-                <span>Project name</span>
-                <PillEditor id="project-name" :model-value="editorState?.projectName ?? ''" aria-label="Project name" @change="renameProject" />
-              </label>
-              <dl class="project-metrics">
-                <div class="project-metric"><dt>Tilesets</dt><dd>{{ tilesets.length }}</dd></div>
-                <div class="project-metric"><dt>Metatiles</dt><dd>{{ editorState?.metatiles.length ?? 0 }}</dd></div>
-                <div class="project-metric"><dt>Prefabs</dt><dd>{{ editorState?.prefabs.length ?? 0 }}</dd></div>
-              </dl>
-              <dl class="scene-metrics">
-                <div class="scene-metric"><dt>Map size</dt><dd>{{ editorState?.scene.width ?? 0 }}x{{ editorState?.scene.height ?? 0 }} tiles</dd></div>
-                <div class="scene-metric"><dt>Tile size</dt><dd>{{ editorState?.scene.tileWidth ?? 0 }}x{{ editorState?.scene.tileHeight ?? 0 }} px</dd></div>
-                <div class="scene-metric"><dt>Grid size</dt><dd>{{ editorState?.scene.gridWidth ?? 0 }}x{{ editorState?.scene.gridHeight ?? 0 }} px</dd></div>
-              </dl>
-            </template>
-            <PrefabPanel v-else-if="mapLeftPanels.activeTab(panel) === 'prefabs'" :prefabs="editorState?.prefabs ?? []" :metatiles="editorState?.metatiles ?? []" :tilesets="tilesets" :selected-prefab-id="selectedPrefabId" :selected-metatile-id="selectedMetatileId" :busy="busy" @select="selectPrefab" />
-            <MetatilePanel v-else :show-editor="false" :show-controls="false" :metatiles="editorState?.metatiles ?? []" :tilesets="tilesets" :selected-metatile-id="selectedMetatileId" :tile-selection="selectedTile" :mode="metatileMode" :busy="busy" @select="selectMapMetatile" @error="setCanvasError" />
-          </EditorPanel>
-        </div>
-      </aside>
+    <WorkspaceMap v-if="workspaceMode === 'map'" ref="sceneCanvas" :state="editorState" :tilesets="tilesets" :busy="busy" :selected-tile="selectedTile" :selected-metatile-id="selectedMetatileId" :selected-prefab-id="selectedPrefabId" :metatile-mode="metatileMode" :show-grid="showGrid" :show-footprints="showFootprints" :active-layer-id="activeLayerId" :flip-x="flipX" :flip-y="flipY" :can-undo="canUndo" :can-redo="canRedo" :active-tool="activeTool" :selection="selection" :brush-spacing="brushSpacing" :entity-definitions="entityDefinitions" :selected-entity-definition-id="selectedEntityDefinitionId" :active-layer="activeLayer" :selected-item="selectedItem" :history-entries="historyEntries" :history-index="historyIndex" @rename-project="renameProject" @select-prefab="selectPrefab" @select-map-metatile="selectMapMetatile" @error="setCanvasError" @zoom-change="canvasZoom = $event" @paint="paintMetatile" @action="canvasAction" @stroke-start="beginStroke" @stroke-end="endStroke" @update:active-tool="setTool" @undo="undo" @redo="redo" @update:active-layer-id="activeLayerId = $event" @toggle-layer-visibility="toggleLayerVisibility" @move-layer="moveLayerToTarget" @add-layer="addLayer" @delete-active-layer="deleteActiveLayer" @select-scene-entity="selectSceneEntity" @edit-entity-definition="editEntityDefinition" @update:show-grid="showGrid = $event" @update:show-footprints="showFootprints = $event" @update:flip-x="flipX = $event" @update:flip-y="flipY = $event" @update:brush-spacing="brushSpacing = $event" @clear-active-layer="clearActiveLayer" @update:selected-entity-definition-id="selectedEntityDefinitionId = $event" @create-entity-definition="addGenericEntityDefinition" @patch-active-layer="patchActiveLayer" @go-to-history="goToHistory" @patch-selection="patchSelection" @delete-selection="deleteSelection" />
 
-      <SceneCanvas ref="sceneCanvas" class="workspace-region--main" :state="editorState" :show-grid="showGrid" :show-footprints="showFootprints" :active-layer-id="activeLayerId" :selected-metatile-id="selectedMetatileId" :flip-x="flipX" :flip-y="flipY" :can-undo="canUndo" :can-redo="canRedo" :active-tool="activeTool" :selection="selection" :brush-spacing="brushSpacing" @error="setCanvasError" @zoom-change="canvasZoom = $event" @paint="paintMetatile" @action="canvasAction" @stroke-start="beginStroke" @stroke-end="endStroke" @update:active-tool="setTool" @undo="undo" @redo="redo" />
+    <WorkspaceEntities v-else-if="workspaceMode === 'entities'" :definitions="entityDefinitions" :selected-id="selectedEntityDefinitionId" :sprites="sprites" :source-urls="project.sourceUrls" :instances="editorState?.entities ?? []" :input-maps="editorState?.inputMaps ?? []" :selected-input-map-id="editorState?.selectedInputMapId ?? ''" :history-entries="historyEntries" :history-index="historyIndex" @create="addGenericEntityDefinition" @select="selectedEntityDefinitionId = $event" @update-name="updateEntityName" @update-sprite="updateEntitySprite" @update-sprite-mode="updateEntitySpriteMode" @update-animation="updateEntityAnimation" @update-directional-set="updateEntityDirectionalSet" @update-behavior="updateEntityBehavior" @update-input-actions="updateEntityInputActions" @add-directional-movement="addDirectionalMovement" @update-directional-movement="updateDirectionalMovement" @update-collider="updateEntityCollider" @add-input-map="addInputMap" @select-input-map="selectInputMap" @update-input-map="updateInputMap" @open-instance="openSceneEntity" @go-to-history="goToHistory" />
 
-      <aside class="right-stack workspace-stack workspace-region--right" aria-label="Layers and properties" @dragover="mapRightPanels.allowDockDrop" @drop="mapRightPanels.detachTab">
-        <div v-for="panel in mapRightPanels.panels" :key="panel.key" v-bind="mapRightPanels.dragItem(panel.key)" class="panel-stack-item" :class="{ 'is-dragging': mapRightPanels.dragging === panel.key, 'is-switched': mapRightPanels.switched === panel.key, 'is-dock-target': mapRightPanels.dockTarget === panel.key, 'is-insert-after': mapRightPanels.insertionAfter === panel.key }">
-          <EditorPanel :title="titleForMapRightPanel(panel)" :class="{ 'history-panel': mapRightPanels.activeTab(panel) === 'history' }" :tabs="tabsForMapRightPanel(panel)" :active-tab="mapRightPanels.activeTab(panel)" :draggable-tabs="panel.tabs.length > 1" dockable @update:active-tab="mapRightPanels.setActiveTab(panel, $event)" @tab-drag-start="(tab, event) => mapRightPanels.startTabDrag(tab, event)" @tab-drag-end="mapRightPanels.endTabDrag" @tab-drag-over="mapRightPanels.allowDockDrop($event, panel.key)" @tab-drop="mapRightPanels.dockIntoPanel(panel.key, $event)">
-            <template v-if="mapRightPanels.activeTab(panel) === 'outliner'">
-              <LayerList :layers="editorState?.layers ?? []" :active-layer-id="activeLayerId" @select="activeLayerId = $event" @toggle-visibility="toggleLayerVisibility" @move="moveLayerToTarget" />
-              <div class="layer-actions outliner-actions">
-                <button class="action icon-action" type="button" aria-label="Add tile layer" title="Add tile layer" @click="addLayer('tile')"><svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M0 1.5A1.5 1.5 0 0 1 1.5 0h13A1.5 1.5 0 0 1 16 1.5v13a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 0 14.5zM1.5 1a.5.5 0 0 0-.5.5V5h4V1zM5 6H1v4h4zm1 4h4V6H6zm-1 1H1v3.5a.5.5 0 0 0 .5.5H5zm1 0v4h4v-4zm5 0v4h3.5a.5.5 0 0 0 .5-.5V11zm0-1h4V6h-4zm0-5h4V1.5a.5.5 0 0 0-.5-.5H11zm-1 0V1H6v4z" /></svg></button>
-                <button class="action icon-action" type="button" aria-label="Add object layer" title="Add object layer" @click="addLayer('object')"><svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M7.752.066a.5.5 0 0 1 .496 0l3.75 2.143a.5.5 0 0 1 .252.434v3.995l3.498 2A.5.5 0 0 1 16 9.07v4.286a.5.5 0 0 1-.252.434l-3.75 2.143a.5.5 0 0 1-.496 0l-3.502-2-3.502 2.001a.5.5 0 0 1-.496 0l-3.75-2.143A.5.5 0 0 1 0 13.357V9.071a.5.5 0 0 1 .252-.434L3.75 6.638V2.643a.5.5 0 0 1 .252-.434zM4.25 7.504 1.508 9.071l2.742 1.567 2.742-1.567zM7.5 9.933l-2.75 1.571v3.134l2.75-1.571zm1 3.134 2.75 1.571v-3.134L8.5 9.933zm.508-3.996 2.742 1.567 2.742-1.567-2.742-1.567zm2.242-2.433V3.504L8.5 5.076V8.21zM7.5 8.21V5.076L4.75 3.504v3.134zM5.258 2.643 8 4.21l2.742-1.567L8 1.076zM15 9.933l-2.75 1.571v3.134L15 13.067zM3.75 14.638v-3.134L1 9.933v3.134z" /></svg></button>
-                <button class="action icon-action group-action" type="button" aria-label="Add layer group" title="Add layer group" @click="addLayer('group')"><svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M1 3.5A1.5 1.5 0 0 1 2.5 2h2.764c.958 0 1.76.56 2.311 1.184C7.985 3.648 8.48 4 9 4h4.5A1.5 1.5 0 0 1 15 5.5v7a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 1 12.5zM2.5 3a.5.5 0 0 0-.5.5V6h12v-.5a.5.5 0 0 0-.5-.5H9c-.964 0-1.71-.629-2.174-1.154C6.374 3.334 5.82 3 5.264 3zM14 7H2v5.5a.5.5 0 0 0 .5.5h11a.5.5 0 0 0 .5-.5z" /></svg></button>
-                <button class="action danger icon-action" type="button" :disabled="!activeLayer" aria-label="Delete layer" title="Delete layer" @click="deleteActiveLayer"><EditorIcon name="trash" /></button>
-              </div>
-              <SceneEntityList :entities="editorState?.entities ?? []" :definitions="entityDefinitions" :selected-id="selection?.kind === 'entity' ? selection.id : null" @select="selectSceneEntity" @edit="editEntityDefinition" />
-            </template>
-            <ViewPanel v-else-if="mapRightPanels.activeTab(panel) === 'view'" v-model:show-grid="showGrid" v-model:show-footprints="showFootprints" v-model:flip-x="flipX" v-model:flip-y="flipY" v-model:brush-spacing="brushSpacing" :can-clear="Boolean(activeLayer && activeLayer.type !== 'group')" @clear="clearActiveLayer" />
-            <template v-else-if="mapRightPanels.activeTab(panel) === 'placement'">
-              <label class="field field-stack" for="entity-definition"><span>Placement definition</span><PillEditor id="entity-definition" :model-value="selectedEntityDefinitionId" aria-label="Placement definition" :options="[{ label: 'Choose a definition', value: '' }, ...entityDefinitions.map(definition => ({ label: definition.name, value: definition.id }))]" @change="selectedEntityDefinitionId = String($event)" /></label>
-              <div class="inline-actions">
-                <button class="action" type="button" @click="addGenericEntityDefinition">New definition</button>
-                <button class="action" type="button" :disabled="!selectedEntityDefinition" @click="selectedEntityDefinition && editEntityDefinition(selectedEntityDefinition.id)">Edit definition</button>
-              </div>
-            </template>
-            <LayerPropertiesPanel v-else-if="mapRightPanels.activeTab(panel) === 'properties'" :layer="activeLayer" @patch="patchActiveLayer" />
-            <HistoryPanel v-else-if="mapRightPanels.activeTab(panel) === 'history'" :entries="historyEntries" :current-index="historyIndex" @go-to="goToHistory" />
-            <SelectionPanel v-else :selection="selectedItem" :entity-definitions="entityDefinitions" @patch="patchSelection" @remove="deleteSelection" />
-          </EditorPanel>
-        </div>
-      </aside>
-    </div>
-
-    <EntityWorkspace v-else-if="workspaceMode === 'entities'" :definitions="entityDefinitions" :selected-id="selectedEntityDefinitionId" :sprites="sprites" :source-urls="project.sourceUrls" :instances="editorState?.entities ?? []" :input-maps="editorState?.inputMaps ?? []" :selected-input-map-id="editorState?.selectedInputMapId ?? ''" :history-entries="historyEntries" :history-index="historyIndex" @create="addGenericEntityDefinition" @select="selectedEntityDefinitionId = $event" @update-name="updateEntityName" @update-sprite="updateEntitySprite" @update-sprite-mode="updateEntitySpriteMode" @update-animation="updateEntityAnimation" @update-directional-set="updateEntityDirectionalSet" @update-behavior="updateEntityBehavior" @update-input-actions="updateEntityInputActions" @add-directional-movement="addDirectionalMovement" @update-directional-movement="updateDirectionalMovement" @update-collider="updateEntityCollider" @add-input-map="addInputMap" @select-input-map="selectInputMap" @update-input-map="updateInputMap" @open-instance="openSceneEntity" @go-to-history="goToHistory" />
-
-    <div v-else-if="workspaceMode === 'tiles'" class="workspace-layout tiles-workspace">
-      <aside class="left-stack workspace-stack workspace-region--left" aria-label="Metatiles"><EditorPanel title="Metatiles" class="metatile-panel"><MetatilePanel :show-editor="false" :metatiles="editorState?.metatiles ?? []" :tilesets="tilesets" :selected-metatile-id="selectedMetatileId" :tile-selection="selectedTile" :mode="metatileMode" :busy="busy" @add="addNewMetatile" @select="selectMetatile" @activate-cell="activateMetatileCell" @update:mode="metatileMode = $event" @error="setCanvasError" /></EditorPanel></aside>
-      <EditorPanel title="Tiles" class="workspace-region--main tiles-workspace-panel" :tabs="tilesWorkspaceTabs" :active-tab="tilesWorkspaceView" @update:active-tab="tilesWorkspaceView = $event as 'tilesets' | 'metatile'">
-          <TilesetPanel v-if="tilesWorkspaceView === 'tilesets'" :tilesets="tilesets" :selection="selectedTile" :max-columns="editorState?.metatiles.find(item => item.id === selectedMetatileId)?.columns ?? 1" :max-rows="editorState?.metatiles.find(item => item.id === selectedMetatileId)?.rows ?? 1" :busy="busy" @import="importTilesets" @select="selectTile" @error="setCanvasError" />
-          <MetatilePanel v-else :show-library="false" :metatiles="editorState?.metatiles ?? []" :tilesets="tilesets" :selected-metatile-id="selectedMetatileId" :tile-selection="selectedTile" :mode="metatileMode" :busy="busy" @add="addNewMetatile" @select="selectMetatile" @activate-cell="activateMetatileCell" @update:mode="metatileMode = $event" @error="setCanvasError" />
-      </EditorPanel>
-      <aside class="right-stack workspace-stack workspace-region--right" aria-label="Prefabs"><EditorPanel title="Prefabs" class="prefab-panel"><PrefabPanel editable :prefabs="editorState?.prefabs ?? []" :metatiles="editorState?.metatiles ?? []" :tilesets="tilesets" :selected-prefab-id="selectedPrefabId" :selected-metatile-id="selectedMetatileId" :busy="busy" @add="addNewPrefab" @select="selectPrefab" @activate-cell="activatePrefabCell" /></EditorPanel></aside>
-    </div>
-    <AnimationEditor v-else-if="workspaceMode === 'sprite'" :sprites="sprites" :selected-id="selectedSpriteId" :source-urls="project.sourceUrls" :busy="busy" @import="importSprites" @create="createBlankSprite" @select="selectedSpriteId = $event" @update="updateSprite" @rename="renameSprite" @rename-animation="renameSpriteAnimation" @remove-animation="removeSpriteAnimation" @rename-directional-set="renameSpriteDirectionalSet" @remove-directional-set="removeSpriteDirectionalSet" @remove-sprite="removeProjectSprite" />
-    <SpriteAssetEditor v-else ref="spriteAssetCanvas" :sprites="sprites" :selected-id="selectedSpriteId" :source-urls="project.sourceUrls" :busy="busy" :zoom="spriteAssetZoom" :can-undo="canUndo" :can-redo="canRedo" :history-entries="historyEntries" :history-index="historyIndex" @zoom-change="spriteAssetZoom = $event" @undo="undo" @redo="redo" @history="commitSpriteHistory" @go-to-history="goToHistory" @import="importSprites" @create-blank="createBlankSprite" @remove="removeProjectSprite" @rename="renameSprite" @select="selectedSpriteId = $event" @update="updateSprite" />
+    <WorkspaceTiles v-else-if="workspaceMode === 'tiles'" :state="editorState" :tilesets="tilesets" :selected-tile="selectedTile" :selected-metatile-id="selectedMetatileId" :selected-prefab-id="selectedPrefabId" :metatile-mode="metatileMode" :busy="busy" @add-metatile="addNewMetatile" @select-metatile="selectMetatile" @activate-metatile-cell="activateMetatileCell" @update:metatile-mode="metatileMode = $event" @error="setCanvasError" @import-tilesets="importTilesets" @select-tile="selectTile" @add-prefab="addNewPrefab" @select-prefab="selectPrefab" @activate-prefab-cell="activatePrefabCell" />
+    <WorkspaceAnimation v-else-if="workspaceMode === 'sprite'" :sprites="sprites" :selected-id="selectedSpriteId" :source-urls="project.sourceUrls" :busy="busy" @import="importSprites" @create="createBlankSprite" @select="selectedSpriteId = $event" @update="updateSprite" @rename="renameSprite" @rename-animation="renameSpriteAnimation" @remove-animation="removeSpriteAnimation" @rename-directional-set="renameSpriteDirectionalSet" @remove-directional-set="removeSpriteDirectionalSet" @remove-sprite="removeProjectSprite" />
+    <WorkspaceSpriteAsset v-else ref="spriteAssetCanvas" :sprites="sprites" :selected-id="selectedSpriteId" :source-urls="project.sourceUrls" :busy="busy" :zoom="spriteAssetZoom" :can-undo="canUndo" :can-redo="canRedo" :history-entries="historyEntries" :history-index="historyIndex" @zoom-change="spriteAssetZoom = $event" @undo="undo" @redo="redo" @history="commitSpriteHistory" @go-to-history="goToHistory" @import="importSprites" @create-blank="createBlankSprite" @remove="removeProjectSprite" @rename="renameSprite" @select="selectedSpriteId = $event" @update="updateSprite" />
 
     </template>
     <template #status><StatusBar :message="status" :zoom="workspaceMode === 'sprites' ? spriteAssetZoom : canvasZoom" :max-zoom="workspaceMode === 'sprites' ? 32 : 4" @zoom-out="workspaceMode === 'sprites' ? spriteAssetCanvas?.zoomOut() : sceneCanvas?.zoomOut()" @set-zoom="workspaceMode === 'sprites' ? spriteAssetCanvas?.setZoom($event) : sceneCanvas?.setZoom($event)" @zoom-in="workspaceMode === 'sprites' ? spriteAssetCanvas?.zoomIn() : sceneCanvas?.zoomIn()" @reset-view="workspaceMode === 'sprites' ? spriteAssetCanvas?.resetView() : sceneCanvas?.resetView()" @fit-view="workspaceMode === 'sprites' ? spriteAssetCanvas?.fitView() : sceneCanvas?.fitView()" /></template>

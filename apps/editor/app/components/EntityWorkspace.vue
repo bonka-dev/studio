@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
+import { useWorkspaceDockLayout } from "../composables/use-workspace-dock-layout";
 
 const props = defineProps<{
   definitions: any[];
@@ -12,6 +13,9 @@ const props = defineProps<{
   historyEntries: { revision: number; label: string }[];
   historyIndex: number;
 }>();
+
+const dockPanels = [{ id: "resources", label: "Entities", class: "entity-library" }, { id: "references", label: "Scene references" }, { id: "history", label: "History", class: "history-panel" }];
+const dockLayout = useWorkspaceDockLayout("bonka.workspace-layout.entities.v1", { left: [{ key: "resources", tabs: ["resources"] }], right: [{ key: "references", tabs: ["references"] }, { key: "history", tabs: ["history"] }] });
 
 const emit = defineEmits<{
   create: [];
@@ -99,8 +103,8 @@ function directionalSets(asset: string) {
 
 <template>
   <section class="workspace-layout entities-workspace" aria-label="Entities and input maps">
-    <aside class="workspace-stack workspace-region--left" aria-label="Entity resources">
-      <EditorPanel title="Entities" :collapsible="false" class="entity-library">
+    <WorkspaceDocks :panels="dockPanels" :layout="dockLayout" left-label="Entity resources" right-label="Entity references and history">
+      <template #resources>
         <div class="entity-workspace-tabs" role="tablist" aria-label="Entity workspace sections">
           <button class="action" :class="{ primary: activeTab === 'definitions' }" type="button" role="tab" :aria-selected="activeTab === 'definitions'" @click="activeTab = 'definitions'">Definitions</button>
           <button class="action" :class="{ primary: activeTab === 'input' }" type="button" role="tab" :aria-selected="activeTab === 'input'" @click="activeTab = 'input'">Input Map</button>
@@ -123,8 +127,13 @@ function directionalSets(asset: string) {
             <p v-if="!inputMaps.length" class="empty-note">Create an input map to bind generic actions to GBA controls.</p>
           </div>
         </template>
-      </EditorPanel>
-    </aside>
+      </template>
+      <template #references>
+        <template v-if="activeTab === 'definitions'"><dl class="entity-summary"><div><dt>Definitions</dt><dd>{{ definitions.length }}</dd></div><div><dt>Selected uses</dt><dd>{{ references.length }}</dd></div></dl><div class="entity-reference-list"><button v-for="instance in references" :key="instance.id" class="entity-reference" type="button" @click="emit('open-instance', instance.id)"><strong>{{ instance.id }}</strong><span>cell {{ instance.x }}, {{ instance.y }}</span></button><p v-if="selected && !references.length" class="empty-note">This definition is not placed in the current scene.</p></div></template>
+        <p v-else class="entity-help">The selected map is stored in <code>project.inputMap</code>. Actions are generic; bindings are explicitly GBA-only.</p>
+      </template>
+      <template #history><HistoryPanel :entries="historyEntries" :current-index="historyIndex" @go-to="emit('go-to-history', $event)" /></template>
+    </WorkspaceDocks>
 
     <EditorPanel v-if="activeTab === 'definitions' && selected" :title="selected.name" :collapsible="false" class="workspace-region--main entity-component-editor">
       <div class="entity-editor-heading"><div><p class="eyebrow">Entity definition</p><h2>{{ selected.name }}</h2></div><code>{{ selected.id }}</code></div>
@@ -198,16 +207,5 @@ function directionalSets(asset: string) {
     </EditorPanel>
     <div v-else class="workspace-region--main entity-empty-state"><p>Select or create a {{ activeTab === 'input' ? 'input map' : 'definition' }}.</p></div>
 
-    <aside class="workspace-stack workspace-region--right" aria-label="Entity references and history">
-      <EditorPanel v-if="activeTab === 'definitions'" title="Scene references" :collapsible="false">
-        <dl class="entity-summary"><div><dt>Definitions</dt><dd>{{ definitions.length }}</dd></div><div><dt>Selected uses</dt><dd>{{ references.length }}</dd></div></dl>
-        <div class="entity-reference-list">
-          <button v-for="instance in references" :key="instance.id" class="entity-reference" type="button" @click="emit('open-instance', instance.id)"><strong>{{ instance.id }}</strong><span>cell {{ instance.x }}, {{ instance.y }}</span></button>
-          <p v-if="selected && !references.length" class="empty-note">This definition is not placed in the current scene.</p>
-        </div>
-      </EditorPanel>
-      <EditorPanel v-else title="Input boundary" :collapsible="false"><p class="entity-help">The selected map is stored in <code>project.inputMap</code>. Actions are generic; bindings are explicitly GBA-only.</p></EditorPanel>
-      <EditorPanel title="History" class="history-panel"><HistoryPanel :entries="historyEntries" :current-index="historyIndex" @go-to="emit('go-to-history', $event)" /></EditorPanel>
-    </aside>
   </section>
 </template>

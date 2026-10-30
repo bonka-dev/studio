@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
-import { usePanelStack } from "../composables/use-panel-stack";
+import { useWorkspaceDockLayout } from "../composables/use-workspace-dock-layout";
 
 const props = defineProps<{ sprites: any[]; selectedId: string; sourceUrls: Map<string, string>; busy?: boolean }>();
 const emit = defineEmits(["import", "create", "select", "update", "rename", "rename-animation", "remove-animation", "rename-directional-set", "remove-directional-set", "remove-sprite"]);
@@ -11,7 +11,17 @@ const previewFrameOffset = ref(0);
 const previewPlaying = ref(false);
 const previewSpeed = ref(1);
 const selectedDirectionalSetId = ref("");
-const sidebarPanels = usePanelStack("bonka.panel-order.animation-right", ["settings", "animations", "directions"]);
+const dockPanels = computed(() => [
+  { id: "preview", label: "Animation Preview", class: "sprite-preview-panel" },
+  { id: "library", label: "Sprites", class: "sprite-library" },
+  { id: "settings", label: `${previewAnimationId.value} Settings`, class: "sprite-inspector" },
+  { id: "animations", label: "Animations", class: "sprite-animations-panel" },
+  { id: "directions", label: "Directional sets", class: "sprite-directional-panel" },
+]);
+const dockLayout = useWorkspaceDockLayout("bonka.workspace-layout.animation.v1", {
+  left: [{ key: "preview", tabs: ["preview"] }, { key: "library", tabs: ["library"] }],
+  right: [{ key: "settings", tabs: ["settings"] }, { key: "animations", tabs: ["animations"] }, { key: "directions", tabs: ["directions"] }],
+});
 let previewTimer: ReturnType<typeof setTimeout> | null = null;
 const frames = computed(() => {
   const currentLayout = selected.value?.animations[previewAnimationId.value]?.layout ?? selected.value?.layout;
@@ -263,37 +273,27 @@ function directionStyle(angle: number) {
 
 <template>
   <section class="workspace-layout animation-editor" aria-label="Animation editor">
-    <aside class="sprite-library-stack workspace-stack workspace-region--left" aria-label="Sprite resources">
-      <EditorPanel v-if="selected && layout && activeLayout" title="Animation Preview" class="sprite-preview-panel">
-          <div v-if="previewAnimation && previewFrame" class="sprite-preview">
-           <div class="sprite-preview-frame" :style="previewViewportStyle"><img :src="sourceUrls.get(`sprite:${selected.id}`)" alt="" :style="previewImageStyle" /></div>
-          <small>Frame {{ previewFrame.index }} · {{ previewFrame.duration }} ticks</small>
-          <div class="sprite-preview-controls">
+    <WorkspaceDocks :panels="dockPanels" :layout="dockLayout" left-label="Sprite resources" right-label="Animation settings">
+      <template #preview>
+        <div v-if="selected && layout && activeLayout" class="sprite-preview">
+          <template v-if="previewAnimation && previewFrame">
+            <div class="sprite-preview-frame" :style="previewViewportStyle"><img :src="sourceUrls.get(`sprite:${selected.id}`)" alt="" :style="previewImageStyle" /></div>
+            <small>Frame {{ previewFrame.index }} · {{ previewFrame.duration }} ticks</small>
+            <div class="sprite-preview-controls">
             <label>Animation<PillEditor :model-value="previewAnimationId" aria-label="Preview animation" :options="Object.keys(selected.animations).map(id => ({ label: id, value: id }))" @change="previewAnimationId = String($event)" /></label>
             <button class="action icon-action" type="button" aria-label="Go to first frame" title="Go to first frame" @click="resetPreview"><EditorIcon name="skip-start" /></button>
             <button class="action icon-action" type="button" aria-label="Previous frame" title="Previous frame" @click="stepPreview(-1)"><EditorIcon name="previous" /></button>
             <button class="action icon-action" type="button" :aria-label="previewPlaying ? 'Pause preview' : 'Play preview'" :title="previewPlaying ? 'Pause preview' : 'Play preview'" @click="togglePreview"><EditorIcon :name="previewPlaying ? 'pause' : 'play'" /></button>
             <button class="action icon-action" type="button" aria-label="Next frame" title="Next frame" @click="stepPreview(1)"><EditorIcon name="next" /></button>
             <button class="action icon-action" type="button" aria-label="Go to last frame" title="Go to last frame" @click="endPreview"><EditorIcon name="skip-end" /></button>
-            <label>Speed<PillEditor :model-value="previewSpeed" aria-label="Preview speed" :options="[{ label: '0.25x', value: .25 }, { label: '0.5x', value: .5 }, { label: '1x', value: 1 }, { label: '2x', value: 2 }, { label: '4x', value: 4 }]" @change="previewSpeed = Number($event)" /></label>
-          </div>
+              <label>Speed<PillEditor :model-value="previewSpeed" aria-label="Preview speed" :options="[{ label: '0.25x', value: .25 }, { label: '0.5x', value: .5 }, { label: '1x', value: 1 }, { label: '2x', value: 2 }, { label: '4x', value: 4 }]" @change="previewSpeed = Number($event)" /></label>
+            </div>
+          </template>
         </div>
-      </EditorPanel>
-      <EditorPanel title="Sprites" class="sprite-library"><SpriteLibraryPanel :sprites="sprites" :selected-id="selectedId" :source-urls="sourceUrls" :busy="busy" @import="emit('import', $event)" @create="emit('create')" @remove="emit('remove-sprite', $event)" @rename="(id, name) => emit('rename', id, name)" @select="emit('select', $event)" /></EditorPanel>
-    </aside>
-    <template v-if="selected && layout && activeLayout">
-      <EditorPanel :title="selected.id" :collapsible="false" class="sprite-sheet workspace-region--main">
-        <p class="sprite-summary">{{ selected.frameCount }} frames</p>
-        <div class="sprite-image-scroll"><div class="sprite-image" :style="{ aspectRatio: `${activeLayout.imageWidth} / ${activeLayout.imageHeight}` }">
-           <img :src="sourceUrls.get(`sprite:${selected.id}`)" :alt="`${selected.id} sprite sheet`" />
-          <span v-for="frame in frames" :key="frame" class="sprite-frame" :style="{ left: `${(activeLayout.margin.x + (frame % activeLayout.columns) * (selected.frameSize.width + activeLayout.spacing.x)) / activeLayout.imageWidth * 100}%`, top: `${(activeLayout.margin.y + Math.floor(frame / activeLayout.columns) * (selected.frameSize.height + activeLayout.spacing.y)) / activeLayout.imageHeight * 100}%`, width: `${selected.frameSize.width / activeLayout.imageWidth * 100}%`, height: `${selected.frameSize.height / activeLayout.imageHeight * 100}%` }">{{ frame }}</span>
-        </div></div>
-        <p v-if="warning" class="sprite-warning">{{ warning }}</p>
-       </EditorPanel>
-       <aside class="sprite-sidebar workspace-stack workspace-region--right">
-        <div v-for="panel in sidebarPanels.panels" :key="panel.key" v-bind="sidebarPanels.dragItem(panel.key)" class="panel-stack-item" :class="{ 'is-dragging': sidebarPanels.dragging === panel.key, 'is-switched': sidebarPanels.switched === panel.key }">
-       <EditorPanel v-if="panel.key === 'settings'" :title="`${previewAnimationId} Settings`" class="sprite-inspector">
-        <div class="sprite-fields">
+      </template>
+      <template #library><SpriteLibraryPanel :sprites="sprites" :selected-id="selectedId" :source-urls="sourceUrls" :busy="busy" @import="emit('import', $event)" @create="emit('create')" @remove="emit('remove-sprite', $event)" @rename="(id, name) => emit('rename', id, name)" @select="emit('select', $event)" /></template>
+      <template #settings>
+        <div v-if="selected && layout && activeLayout" class="sprite-fields">
           <label>Cell width<PillEditor :model-value="selected.frameSize.width" type="number" aria-label="Frame width" @change="patch('frameSize.width', $event)" /></label>
           <label>Cell height<PillEditor :model-value="selected.frameSize.height" type="number" aria-label="Frame height" @change="patch('frameSize.height', $event)" /></label>
           <label>Columns<PillEditor :model-value="activeLayout.columns" type="number" aria-label="Columns" @change="patch('layout.columns', $event)" /></label>
@@ -304,9 +304,9 @@ function directionStyle(angle: number) {
           <label>Spacing Y<PillEditor :model-value="activeLayout.spacing.y" type="number" aria-label="Spacing Y" @change="patch('layout.spacing.y', $event)" /></label>
           <label>Colors<PillEditor :model-value="selected.gba.colors" aria-label="Colors" :options="[{ label: '16 / 4 bpp', value: 16 }, { label: '256 / 8 bpp', value: 256 }]" @change="setGbaMode(String($event))" /></label>
         </div>
-       </EditorPanel>
-        <EditorPanel v-else-if="panel.key === 'animations'" title="Animations" class="sprite-animations-panel">
-        <div class="sprite-animations">
+      </template>
+      <template #animations>
+        <div v-if="selected && layout && activeLayout" class="sprite-animations">
           <div class="layer-actions sprite-animations-title"><button class="action primary" type="button" @click="addAnimation">Add Animation</button></div>
           <section v-for="(animation, id) in selected.animations" :key="id" class="sprite-animation">
             <label class="field sprite-animation-header"><span>Name</span><PillEditor :model-value="String(id)" :aria-label="`${id} animation name`" @change="renameAnimation(String(id), $event)" /></label>
@@ -316,28 +316,36 @@ function directionStyle(angle: number) {
             </div>
           </section>
         </div>
-       </EditorPanel>
-         <EditorPanel v-else title="Directional sets" class="sprite-directional-panel">
-          <div class="sprite-directional">
-            <div class="layer-actions sprite-animations-title"><button class="action primary" type="button" @click="addDirectionalSet">Add set</button></div>
-            <label v-if="directionalSets.length" class="field sprite-animation-header"><span>Active set</span><PillEditor :model-value="selectedDirectionalSetId" aria-label="Active directional set" :options="directionalSets.map((set: any) => ({ label: set.id, value: set.id }))" @change="selectedDirectionalSetId = String($event)" /></label>
-            <template v-if="selectedDirectionalSet">
-              <label class="field sprite-animation-header"><span>Name</span><PillEditor :model-value="selectedDirectionalSet.id" aria-label="Directional set name" @change="renameDirectionalSet(selectedDirectionalSet.id, $event)" /></label>
-             <div class="direction-wheel" aria-label="Directional set preview"><button v-for="variant in selectedDirectionalSet.variants" :key="`${variant.angle}-${variant.animation}`" class="direction-wheel-point" type="button" :style="directionStyle(variant.angle)" :title="`${variant.angle}°: ${variant.animation}`" @click="previewAnimationId = variant.animation">{{ variant.angle }}°</button></div>
-             <p class="direction-wheel-note">0° up · 90° right · angles increase clockwise</p>
-             <div class="directional-actions"><button class="action" type="button" @click="addDirectionalVariant">Add direction</button><button class="action" type="button" @click="distributeDirectionalVariants">Distribute evenly</button><button class="action danger" type="button" @click="removeDirectionalSet(selectedDirectionalSet.id)">Delete set</button></div>
-             <section v-for="(variant, index) in selectedDirectionalSet.variants" :key="`${variant.angle}-${index}`" class="directional-variant">
-               <label>Clip<PillEditor :model-value="variant.animation" :aria-label="`Direction ${index + 1} clip`" :options="Object.keys(selected.animations).map(id => ({ label: id, value: id }))" @change="updateDirectionalVariant(index, { animation: String($event) })" /></label>
-               <label>Angle<PillEditor :model-value="variant.angle" type="number" :aria-label="`Direction ${index + 1} angle`" @change="updateDirectionalVariant(index, { angle: Number($event) })" /></label>
-               <label>Label<PillEditor :model-value="variant.label ?? ''" :aria-label="`Direction ${index + 1} label`" @change="updateDirectionalVariantLabel(index, $event)" /></label>
-               <button class="action danger icon-action" type="button" :disabled="selectedDirectionalSet.variants.length === 1" :aria-label="`Delete direction ${index + 1}`" @click="removeDirectionalVariant(index)"><EditorIcon name="trash" /></button>
-             </section>
-           </template>
-           <p v-else class="empty-note">Add a set to map clips to any number of directions.</p>
-         </div>
-        </EditorPanel>
+      </template>
+      <template #directions>
+        <div v-if="selected && layout && activeLayout" class="sprite-directional">
+          <div class="layer-actions sprite-animations-title"><button class="action primary" type="button" @click="addDirectionalSet">Add set</button></div>
+          <label v-if="directionalSets.length" class="field sprite-animation-header"><span>Active set</span><PillEditor :model-value="selectedDirectionalSetId" aria-label="Active directional set" :options="directionalSets.map((set: any) => ({ label: set.id, value: set.id }))" @change="selectedDirectionalSetId = String($event)" /></label>
+          <template v-if="selectedDirectionalSet">
+            <label class="field sprite-animation-header"><span>Name</span><PillEditor :model-value="selectedDirectionalSet.id" aria-label="Directional set name" @change="renameDirectionalSet(selectedDirectionalSet.id, $event)" /></label>
+            <div class="direction-wheel" aria-label="Directional set preview"><button v-for="variant in selectedDirectionalSet.variants" :key="`${variant.angle}-${variant.animation}`" class="direction-wheel-point" type="button" :style="directionStyle(variant.angle)" :title="`${variant.angle}°: ${variant.animation}`" @click="previewAnimationId = variant.animation">{{ variant.angle }}°</button></div>
+            <p class="direction-wheel-note">0° up · 90° right · angles increase clockwise</p>
+            <div class="directional-actions"><button class="action" type="button" @click="addDirectionalVariant">Add direction</button><button class="action" type="button" @click="distributeDirectionalVariants">Distribute evenly</button><button class="action danger" type="button" @click="removeDirectionalSet(selectedDirectionalSet.id)">Delete set</button></div>
+            <section v-for="(variant, index) in selectedDirectionalSet.variants" :key="`${variant.angle}-${index}`" class="directional-variant">
+              <label>Clip<PillEditor :model-value="variant.animation" :aria-label="`Direction ${index + 1} clip`" :options="Object.keys(selected.animations).map(id => ({ label: id, value: id }))" @change="updateDirectionalVariant(index, { animation: String($event) })" /></label>
+              <label>Angle<PillEditor :model-value="variant.angle" type="number" :aria-label="`Direction ${index + 1} angle`" @change="updateDirectionalVariant(index, { angle: Number($event) })" /></label>
+              <label>Label<PillEditor :model-value="variant.label ?? ''" :aria-label="`Direction ${index + 1} label`" @change="updateDirectionalVariantLabel(index, $event)" /></label>
+              <button class="action danger icon-action" type="button" :disabled="selectedDirectionalSet.variants.length === 1" :aria-label="`Delete direction ${index + 1}`" @click="removeDirectionalVariant(index)"><EditorIcon name="trash" /></button>
+            </section>
+          </template>
+          <p v-else class="empty-note">Add a set to map clips to any number of directions.</p>
         </div>
-        </aside>
+      </template>
+    </WorkspaceDocks>
+    <template v-if="selected && layout && activeLayout">
+      <EditorPanel :title="selected.id" :collapsible="false" class="sprite-sheet workspace-region--main">
+        <p class="sprite-summary">{{ selected.frameCount }} frames</p>
+        <div class="sprite-image-scroll"><div class="sprite-image" :style="{ aspectRatio: `${activeLayout.imageWidth} / ${activeLayout.imageHeight}` }">
+           <img :src="sourceUrls.get(`sprite:${selected.id}`)" :alt="`${selected.id} sprite sheet`" />
+          <span v-for="frame in frames" :key="frame" class="sprite-frame" :style="{ left: `${(activeLayout.margin.x + (frame % activeLayout.columns) * (selected.frameSize.width + activeLayout.spacing.x)) / activeLayout.imageWidth * 100}%`, top: `${(activeLayout.margin.y + Math.floor(frame / activeLayout.columns) * (selected.frameSize.height + activeLayout.spacing.y)) / activeLayout.imageHeight * 100}%`, width: `${selected.frameSize.width / activeLayout.imageWidth * 100}%`, height: `${selected.frameSize.height / activeLayout.imageHeight * 100}%` }">{{ frame }}</span>
+        </div></div>
+        <p v-if="warning" class="sprite-warning">{{ warning }}</p>
+       </EditorPanel>
     </template>
     <p v-else class="empty-note workspace-region--main">Import a PNG sprite sheet to begin.</p>
   </section>

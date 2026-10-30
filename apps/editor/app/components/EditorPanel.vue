@@ -32,7 +32,7 @@ function drop(event: DragEvent) {
 </script>
 
 <template>
-    <section class="panel" :class="{ collapsed, static: !collapsible, headerless, 'has-title-actions': Boolean($slots.actions) || props.tabs.length }">
+    <section class="panel" :class="{ collapsed, static: !collapsible, headerless }">
     <div v-if="!headerless && props.tabs.length" class="panel-tab-header" @click="collapsible && (collapsed = !collapsed)" @dragover="dragOver" @drop="drop">
       <div class="panel-tabs" role="tablist" :aria-label="`${title} views`">
         <button v-for="tab in props.tabs" :key="tab.id" class="action" :class="{ primary: tab.id === activeTab }" type="button" role="tab" :aria-selected="tab.id === activeTab" :draggable="draggableTabs" @click.stop="$emit('update:activeTab', tab.id)" @dragstart.stop="$emit('tab-drag-start', tab.id, $event)" @dragend.stop="$emit('tab-drag-end')">{{ tab.label }}</button>
