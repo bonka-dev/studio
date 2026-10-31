@@ -291,7 +291,7 @@ function directionStyle(angle: number) {
           </template>
         </div>
       </template>
-      <template #library><SpriteLibraryPanel :sprites="sprites" :selected-id="selectedId" :source-urls="sourceUrls" :busy="busy" @import="emit('import', $event)" @create="emit('create')" @remove="emit('remove-sprite', $event)" @rename="(id, name) => emit('rename', id, name)" @select="emit('select', $event)" /></template>
+      <template #library><PanelLibrarySprite :sprites="sprites" :selected-id="selectedId" :source-urls="sourceUrls" :busy="busy" @import="emit('import', $event)" @create="emit('create')" @remove="emit('remove-sprite', $event)" @rename="(id, name) => emit('rename', id, name)" @select="emit('select', $event)" /></template>
       <template #settings>
         <div v-if="selected && layout && activeLayout" class="sprite-fields">
           <label>Cell width<PillEditor :model-value="selected.frameSize.width" type="number" aria-label="Frame width" @change="patch('frameSize.width', $event)" /></label>
@@ -338,14 +338,14 @@ function directionStyle(angle: number) {
       </template>
     </WorkspaceDocks>
     <template v-if="selected && layout && activeLayout">
-      <EditorPanel :title="selected.id" :collapsible="false" class="sprite-sheet workspace-region--main">
+      <PanelEditor :title="selected.id" :collapsible="false" class="sprite-sheet workspace-region--main">
         <p class="sprite-summary">{{ selected.frameCount }} frames</p>
         <div class="sprite-image-scroll"><div class="sprite-image" :style="{ aspectRatio: `${activeLayout.imageWidth} / ${activeLayout.imageHeight}` }">
            <img :src="sourceUrls.get(`sprite:${selected.id}`)" :alt="`${selected.id} sprite sheet`" />
           <span v-for="frame in frames" :key="frame" class="sprite-frame" :style="{ left: `${(activeLayout.margin.x + (frame % activeLayout.columns) * (selected.frameSize.width + activeLayout.spacing.x)) / activeLayout.imageWidth * 100}%`, top: `${(activeLayout.margin.y + Math.floor(frame / activeLayout.columns) * (selected.frameSize.height + activeLayout.spacing.y)) / activeLayout.imageHeight * 100}%`, width: `${selected.frameSize.width / activeLayout.imageWidth * 100}%`, height: `${selected.frameSize.height / activeLayout.imageHeight * 100}%` }">{{ frame }}</span>
         </div></div>
         <p v-if="warning" class="sprite-warning">{{ warning }}</p>
-       </EditorPanel>
+        </PanelEditor>
     </template>
     <p v-else class="empty-note workspace-region--main">Import a PNG sprite sheet to begin.</p>
   </section>

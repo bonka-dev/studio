@@ -428,7 +428,7 @@ defineExpose({
 <template>
   <section class="workspace-layout sprite-asset-editor" aria-label="Sprite asset editor">
     <WorkspaceDocks :panels="dockPanels" :layout="dockLayout" left-label="Sprite resources" right-label="Sprite preview and palette">
-      <template #library><SpriteLibraryPanel :sprites="sprites" :selected-id="selectedId" :source-urls="sourceUrls" :busy="busy" @import="emit('import', $event)" @create="emit('create-blank')" @remove="emit('remove', $event)" @rename="(id, name) => emit('rename', id, name)" @select="emit('select', $event)" /></template>
+      <template #library><PanelLibrarySprite :sprites="sprites" :selected-id="selectedId" :source-urls="sourceUrls" :busy="busy" @import="emit('import', $event)" @create="emit('create-blank')" @remove="emit('remove', $event)" @rename="(id, name) => emit('rename', id, name)" @select="emit('select', $event)" /></template>
       <template #layers>
          <p v-if="!selected" class="empty-note">Select a sprite to view its layers.</p>
          <p v-else-if="!authoring" class="empty-note">No layers yet. Paint the sprite to begin.</p>
@@ -450,7 +450,7 @@ defineExpose({
          </div>
          <input ref="backgroundInput" type="file" accept="image/*" hidden @change="importBackground">
       </template>
-      <template #history><HistoryPanel :entries="historyEntries" :current-index="historyIndex" @go-to="emit('go-to-history', $event)" /></template>
+      <template #history><PanelHistory :entries="historyEntries" :current-index="historyIndex" @go-to="emit('go-to-history', $event)" /></template>
       <template #preview>
         <template v-if="selected">
           <div class="sprite-preview-actions">

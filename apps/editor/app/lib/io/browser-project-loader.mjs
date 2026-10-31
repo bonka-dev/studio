@@ -233,6 +233,19 @@ export function removeTileset(project, id) {
     }
 }
 
+export function removeMetatile(project, id) {
+    const metatile = project?.metatiles.get(id);
+    if(! metatile) {
+        throw new Error(`Unknown metatile '${id}'`);
+    }
+    const resourcePath = project.resourcePaths.get(`metatile:${id}`);
+    project.pendingDeletes ??= new Map();
+    project.pendingDeletes.set(resourcePath, false);
+    project.metatiles.delete(id);
+    project.resourcePaths.delete(`metatile:${id}`);
+    project.manifest.resources.metatiles = project.manifest.resources.metatiles.filter(path => path !== resourcePath);
+}
+
 export async function importPngSprites(project, files) {
     if(! project?.rootHandle) {
         throw new Error("Open or create a project before importing sprites");

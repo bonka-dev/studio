@@ -132,10 +132,10 @@ function directionalSets(asset: string) {
         <template v-if="activeTab === 'definitions'"><dl class="entity-summary"><div><dt>Definitions</dt><dd>{{ definitions.length }}</dd></div><div><dt>Selected uses</dt><dd>{{ references.length }}</dd></div></dl><div class="entity-reference-list"><button v-for="instance in references" :key="instance.id" class="entity-reference" type="button" @click="emit('open-instance', instance.id)"><strong>{{ instance.id }}</strong><span>cell {{ instance.x }}, {{ instance.y }}</span></button><p v-if="selected && !references.length" class="empty-note">This definition is not placed in the current scene.</p></div></template>
         <p v-else class="entity-help">The selected map is stored in <code>project.inputMap</code>. Actions are generic; bindings are explicitly GBA-only.</p>
       </template>
-      <template #history><HistoryPanel :entries="historyEntries" :current-index="historyIndex" @go-to="emit('go-to-history', $event)" /></template>
+      <template #history><PanelHistory :entries="historyEntries" :current-index="historyIndex" @go-to="emit('go-to-history', $event)" /></template>
     </WorkspaceDocks>
 
-    <EditorPanel v-if="activeTab === 'definitions' && selected" :title="selected.name" :collapsible="false" class="workspace-region--main entity-component-editor">
+    <PanelEditor v-if="activeTab === 'definitions' && selected" :title="selected.name" :collapsible="false" class="workspace-region--main entity-component-editor">
       <div class="entity-editor-heading"><div><p class="eyebrow">Entity definition</p><h2>{{ selected.name }}</h2></div><code>{{ selected.id }}</code></div>
       <div class="entity-component-grid">
         <section class="entity-component-card">
@@ -185,9 +185,9 @@ function directionalSets(asset: string) {
           </div>
         </section>
       </div>
-    </EditorPanel>
+    </PanelEditor>
 
-    <EditorPanel v-else-if="activeTab === 'input' && selectedInputMap" :title="selectedInputMap.name" :collapsible="false" class="workspace-region--main entity-component-editor input-map-editor">
+    <PanelEditor v-else-if="activeTab === 'input' && selectedInputMap" :title="selectedInputMap.name" :collapsible="false" class="workspace-region--main entity-component-editor input-map-editor">
       <div class="entity-editor-heading"><div><p class="eyebrow">Selected project input map</p><h2>{{ selectedInputMap.name }}</h2></div><code>{{ selectedInputMap.id }}</code></div>
       <label class="field field-stack"><span>Display name</span><PillEditor :model-value="selectedInputMap.name" aria-label="Input map name" @change="updateInputMap(inputMap => { inputMap.name = String($event).trim() || inputMap.name; }, 'Rename input map')" /></label>
       <div class="input-action-list">
@@ -204,7 +204,7 @@ function directionalSets(asset: string) {
       </div>
       <button class="action primary" type="button" @click="addAction">Add action</button>
       <p class="entity-help">This resource maps generic action IDs only to GBA digital controls and triggers. Subscribed IDs remain stable until their entity definitions unsubscribe.</p>
-    </EditorPanel>
+    </PanelEditor>
     <div v-else class="workspace-region--main entity-empty-state"><p>Select or create a {{ activeTab === 'input' ? 'input map' : 'definition' }}.</p></div>
 
   </section>

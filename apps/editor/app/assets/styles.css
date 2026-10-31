@@ -451,7 +451,7 @@ input[type="range"] {
 .workspace-stack > .panel-stack-item > .panel { overflow: clip; }
 .panel-stack-item { position: relative; min-width: 0; }
 .panel-stack-item[draggable="true"] > .panel > .panel-title,
-.panel-stack-item[draggable="true"] > .panel > .panel-tab-header { cursor: grab; user-select: none; }
+.panel-stack-item[draggable="true"] > .panel > .panel-tab-header { cursor: pointer; user-select: none; }
 .panel-stack-item[draggable="true"] > .panel > .panel-title:active,
 .panel-stack-item[draggable="true"] > .panel > .panel-tab-header:active { cursor: grabbing; }
 .panel-stack-item.is-dragging > .panel { border-color: var(--cyan); background: color-mix(in srgb, var(--cyan) 14%, var(--panel)); }
@@ -465,22 +465,17 @@ input[type="range"] {
 .workspace-stack.is-empty-insert-target::after { content: ""; position: absolute; z-index: 4; top: 12px; right: 10px; left: 10px; height: 2px; background: var(--cyan); pointer-events: none; }
 
 .sprite-library > .panel-content { display: grid; align-content: start; gap: 6px; padding: 8px; }
-.sprite-resource-list,
-.tileset-resource-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
-.sprite-resource,
-.tileset-resource { display: grid; width: 100%; min-width: 0; border: 1px solid var(--line); padding: 6px; color: var(--ink); background: var(--panel-2); }
-.sprite-resource img,
-.tileset-resource img { width: 100%; aspect-ratio: 1; object-fit: contain; image-rendering: pixelated; background: #11130f; }
-.sprite-resource.active,
-.tileset-resource.active { border-color: var(--gold); color: var(--gold); }
-.sprite-resource-card,
-.tileset-resource-card { position: relative; min-width: 0; border: 1px solid var(--line); }
-.sprite-resource-name-row,
-.tileset-resource-name-row { display: flex; min-width: 0; align-items: center; gap: 4px; margin: 3px; }
-.sprite-resource-name-row .pill-editor,
-.tileset-resource-name-row .pill-editor { min-width: 0; flex: 1; }
+.image-resource-list { display: grid; grid-template-columns: repeat(var(--image-resource-columns), minmax(0, 1fr)); gap: 6px; }
+.image-resource-card { position: relative; min-width: 0; border: 1px solid var(--line); }
+.image-resource { display: grid; width: 100%; min-width: 0; border: 1px solid var(--line); padding: 6px; color: var(--ink); background: var(--panel-2); cursor: pointer; }
+.image-resource > img { width: 100%; aspect-ratio: 1; object-fit: contain; image-rendering: pixelated; background: #11130f; }
+.image-resource:hover { border-color: #626755; background: #24271f; }
+.image-resource.selected { border-color: var(--gold); color: var(--gold); }
+.image-resource-name-row { display: flex; min-width: 0; align-items: center; gap: 4px; margin: 3px; }
+.image-resource-name-row .pill-editor { min-width: 0; flex: 1; }
 .sprite-resource-delete,
-.tileset-resource-delete { width: 27px; min-height: 27px; flex: 0 0 auto; padding: 0; }
+.tileset-resource-delete,
+.metatile-resource-delete { width: 27px; min-height: 27px; flex: 0 0 auto; padding: 0; }
 .sprite-sheet > .panel-content { padding: 10px; overflow-y: scroll; height: 100%; }
 .sprite-summary { margin: 0 0.25rem 0.5rem; color: var(--muted); font-size: 11px; }
 .sprite-preview-panel > .panel-content { display: grid; justify-items: center; gap: 8px; padding: 10px; }
@@ -504,9 +499,7 @@ input[type="range"] {
 .sprite-animation-icons { display: flex; gap: 4px; }
 
 .sprite-animation-icons .action,
-.sprite-animation-icons .icon-action,
-.sprite-resource-card .action,
-.sprite-resource-card .icon-action {
+.sprite-animation-icons .icon-action {
     width: 26px; min-height: 26px;
 }
 
@@ -1016,6 +1009,10 @@ section.panel.static.sprite-sheet { overflow: hidden; padding-bottom: 45px; }
     object-fit: contain;
     background: #0d0f0c;
 }
+
+.metatile-image-resource-list { max-height: 220px; overflow-y: auto; }
+.metatile-image-resource-list .image-resource.selected { border-color: var(--cyan); color: var(--ink); background: #20332e; }
+.image-resource .metatile-preview-canvas { width: 100%; height: auto; max-height: 80px; justify-self: center; }
 
 .metatile-cell {
     position: relative;

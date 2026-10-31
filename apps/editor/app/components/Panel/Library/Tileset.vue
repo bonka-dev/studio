@@ -16,13 +16,11 @@ function importTilesets(event: Event) {
 <template>
   <button class="action" type="button" :disabled="busy" @click="tilesetInput?.click()">Import PNG</button>
   <input ref="tilesetInput" type="file" accept="image/png,.png" multiple hidden @change="importTilesets">
-  <div class="tileset-resource-list">
-    <div v-for="tileset in tilesets" :key="tileset.id" class="tileset-resource-card">
-      <button class="tileset-resource" :class="{ active: tileset.id === selectedId }" type="button" @click="$emit('select', tileset.id)"><img :src="tileset.image" :alt="`${tileset.name} preview`"></button>
-      <div class="tileset-resource-name-row">
+  <ImageResourceList :items="tilesets" :selected-id="selectedId" :columns="2" aria-label="Tilesets" @select="$emit('select', $event)">
+    <template #preview="{ item: tileset }"><img :src="tileset.image" :alt="`${tileset.name} preview`"></template>
+    <template #actions="{ item: tileset }">
         <PillEditor :model-value="tileset.name" :aria-label="`${tileset.id} tileset name`" @change="$emit('rename', tileset.id, String($event).trim() || tileset.name)" />
         <EditorButton tone="danger" class="icon-action tileset-resource-delete" aria-label="Delete tileset" :title="`Delete ${tileset.id}`" :disabled="busy" @click="$emit('remove', tileset.id)"><EditorIcon name="trash" /></EditorButton>
-      </div>
-    </div>
-  </div>
+    </template>
+  </ImageResourceList>
 </template>
