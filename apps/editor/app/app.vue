@@ -1370,6 +1370,6 @@ function confirmAction() {
 
     </template>
     <template #status><StatusBar :message="status" :zoom="workspaceMode === 'sprites' ? spriteAssetZoom : canvasZoom" :max-zoom="workspaceMode === 'sprites' ? 32 : 4" @zoom-out="workspaceMode === 'sprites' ? spriteAssetCanvas?.zoomOut() : sceneCanvas?.zoomOut()" @set-zoom="workspaceMode === 'sprites' ? spriteAssetCanvas?.setZoom($event) : sceneCanvas?.setZoom($event)" @zoom-in="workspaceMode === 'sprites' ? spriteAssetCanvas?.zoomIn() : sceneCanvas?.zoomIn()" @reset-view="workspaceMode === 'sprites' ? spriteAssetCanvas?.resetView() : sceneCanvas?.resetView()" @fit-view="workspaceMode === 'sprites' ? spriteAssetCanvas?.fitView() : sceneCanvas?.fitView()" /></template>
-    <template #overlays><CommandsModal v-model:open="commandsOpen" /><ConfirmationModal :open="Boolean(confirmation)" :title="confirmation?.title ?? ''" :message="confirmation?.message ?? ''" :confirm-label="confirmation?.confirmLabel" :danger="confirmation?.danger" @update:open="open => { if(!open) confirmation = null; }" @confirm="confirmAction" /></template>
+    <template #overlays><ModalCommands v-model:open="commandsOpen" /><ModalConfirmation :open="Boolean(confirmation)" :title="confirmation?.title ?? ''" :message="confirmation?.message ?? ''" :confirm-label="confirmation?.confirmLabel" :danger="confirmation?.danger" @update:open="open => { if(!open) confirmation = null; }" @confirm="confirmAction" /></template>
   </NuxtLayout>
 </template>

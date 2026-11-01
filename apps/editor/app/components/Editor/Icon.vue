@@ -3,11 +3,11 @@ import { computed } from "vue";
 
 const props = defineProps<{ name: string }>();
 
-const filledIcons = new Set(["trash", "play", "pause", "tile-layer", "object-layer", "layer-group"]);
+const filledIcons = new Set(["trash", "play", "pause", "tile-layer", "object-layer", "layer-group", "animation"]);
 const compactIcons = new Set(["trash", "tile-layer", "object-layer", "layer-group"]);
 const isFilled = computed(() => filledIcons.has(props.name));
 const isRounded = computed(() => props.name === "skip-start" || props.name === "skip-end");
-const viewBox = computed(() => compactIcons.has(props.name) ? "0 0 16 16" : "0 0 24 24");
+const viewBox = computed(() => props.name === "animation" ? "0 0 320 512" : compactIcons.has(props.name) ? "0 0 16 16" : "0 0 24 24");
 </script>
 
 <template>
@@ -41,6 +41,7 @@ const viewBox = computed(() => compactIcons.has(props.name) ? "0 0 16 16" : "0 0
     <template v-else-if="name === 'eyedropper'"><path d="m14 4 6 6-11 11H3v-6Z" /><path d="m11 7 6 6" /></template>
     <template v-else-if="name === 'select'"><path d="M7 4H4v3m0 4v2m7-9h2m-2 16h2m7-9v2m-3-9h3v3M7 20H4v-3m13 3h3v-3" /></template>
     <template v-else-if="name === 'repeat'"><path d="M17 2l4 4-4 4" /><path d="M3 11V9a3 3 0 0 1 3-3h15M7 22l-4-4 4-4" /><path d="M21 13v2a3 3 0 0 1-3 3H3" /></template>
+    <template v-else-if="name === 'animation'"><path d="M208 96c26.5 0 48-21.5 48-48S234.5 0 208 0s-48 21.5-48 48s21.5 48 48 48zm94.5 149.1l-23.3-11.8l-9.7-29.4c-14.7-44.6-55.7-75.8-102.2-75.9c-36-.1-55.9 10.1-93.3 25.2c-21.6 8.7-39.3 25.2-49.7 46.2L17.6 213c-7.8 15.8-1.5 35 14.2 42.9c15.6 7.9 34.6 1.5 42.5-14.3L81 228c3.5-7 9.3-12.5 16.5-15.4l26.8-10.8l-15.2 60.7c-5.2 20.8.4 42.9 14.9 58.8l59.9 65.4c7.2 7.9 12.3 17.4 14.9 27.7l18.3 73.3c4.3 17.1 21.7 27.6 38.8 23.3c17.1-4.3 27.6-21.7 23.3-38.8l-22.2-89c-2.6-10.3-7.7-19.9-14.9-27.7l-45.5-49.7l17.2-68.7l5.5 16.5c5.3 16.1 16.7 29.4 31.7 37l23.3 11.8c15.6 7.9 34.6 1.5 42.5-14.3c7.7-15.7 1.4-35.1-14.3-43zM73.6 385.8c-3.2 8.1-8 15.4-14.2 21.5l-50 50.1c-12.5 12.5-12.5 32.8 0 45.3s32.7 12.5 45.2 0l59.4-59.4c6.1-6.1 10.9-13.4 14.2-21.5l13.5-33.8c-55.3-60.3-38.7-41.8-47.4-53.7l-20.7 51.5z" /></template>
     <circle v-else cx="12" cy="12" r="8" />
   </svg>
 </template>
