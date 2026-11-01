@@ -1,5 +1,5 @@
 <script setup lang="ts">
-const props = defineProps<{ open: boolean; title: string; message: string; confirmLabel?: string; danger?: boolean }>();
+defineProps<{ open: boolean; title: string; message: string; confirmLabel?: string; danger?: boolean }>();
 const emit = defineEmits<{ "update:open": [open: boolean]; confirm: [] }>();
 
 function confirm(close: () => void) {

@@ -235,7 +235,7 @@ async function onPointerDown(event: PointerEvent) {
   interaction.value = event.altKey ? null : "draw";
   erase = event.button === 2 || activeTool.value === "eraser";
   if(interaction.value === "draw") {
-    const value = await ensureAuthoring();
+    await ensureAuthoring();
   }
   paint(event);
 }

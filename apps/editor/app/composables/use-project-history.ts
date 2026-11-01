@@ -6,11 +6,11 @@ export function useProjectHistory<T>(snapshot: (state: T) => T, restore: (state:
   let timeline: ReturnType<typeof createHistory> | null = null;
 
   const entries = computed(() => {
-    version.value;
+    void version.value;
     return timeline?.entries().map(entry => ({ revision: entry.revision, label: entry.label })) ?? [];
   });
   const index = computed(() => {
-    version.value;
+    void version.value;
     return timeline?.index() ?? 0;
   });
   const canUndo = computed(() => index.value > 0);

@@ -1,7 +1,6 @@
 import { BonkaProjectError, loadBonkaProjectWithAdapter, validateProjectDocuments } from "@bonka/core";
 
-import { createProjectDocuments } from "../project/editor-project.mjs";
-import { createSpriteDocument, createTilesetDocument, readPngDimensions, toResourceId } from "../project/editor-project.mjs";
+import { createProjectDocuments, createSpriteDocument, createTilesetDocument, readPngDimensions, toResourceId  } from "../project/editor-project.mjs";
 
 export function normalizePortablePath(value, source) {
     if(typeof value !== "string" || value.startsWith("/") || value.includes("\\")) {
@@ -153,7 +152,7 @@ export async function importPngTilesets(project, files, { tileWidth = 8, tileHei
                 bitmap = await globalThis.createImageBitmap(file);
                 decodedDimensions = { width: bitmap.width, height: bitmap.height };
             } catch(error) {
-                throw new Error(`${file.name}: PNG could not be decoded: ${error.message}`);
+            throw new Error(`${file.name}: PNG could not be decoded: ${error.message}`, { cause: error });
             } finally {
                 bitmap?.close();
             }

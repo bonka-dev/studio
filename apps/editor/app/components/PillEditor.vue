@@ -13,6 +13,7 @@ const props = withDefaults(defineProps<{
   options?: Array<{ label: string; value: PillValue }>;
 }>(), {
   type: "text",
+  id: "",
   placeholder: "Set value",
   disabled: false,
   options: undefined,

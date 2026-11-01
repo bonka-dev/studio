@@ -1,9 +1,9 @@
 <script lang="ts">
-const imageCache = new Map<string, { url: string; image: HTMLImageElement }>();
 </script>
 
 <script setup lang="ts">
 import { nextTick, onMounted, ref, watch } from "vue";
+const imageCache = new Map<string, { url: string; image: HTMLImageElement }>();
 
 const props = defineProps<{ tileset: any; tile: number }>();
 const emit = defineEmits<{ error: [message: string] }>();

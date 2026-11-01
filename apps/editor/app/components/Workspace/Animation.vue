@@ -277,7 +277,7 @@ function directionStyle(angle: number) {
       <template #preview>
         <div v-if="selected && layout && activeLayout" class="sprite-preview">
           <template v-if="previewAnimation && previewFrame">
-            <div class="sprite-preview-frame" :style="previewViewportStyle"><img :src="sourceUrls.get(`sprite:${selected.id}`)" alt="" :style="previewImageStyle" /></div>
+            <div class="sprite-preview-frame" :style="previewViewportStyle"><img :src="sourceUrls.get(`sprite:${selected.id}`)" alt="" :style="previewImageStyle" ></div>
             <small>Frame {{ previewFrame.index }} · {{ previewFrame.duration }} ticks</small>
             <div class="sprite-preview-controls">
             <label>Animation<PillEditor :model-value="previewAnimationId" aria-label="Preview animation" :options="Object.keys(selected.animations).map(id => ({ label: id, value: id }))" @change="previewAnimationId = String($event)" /></label>
@@ -341,7 +341,7 @@ function directionStyle(angle: number) {
       <PanelEditor :title="selected.id" :collapsible="false" class="sprite-sheet workspace-region--main">
         <p class="sprite-summary">{{ selected.frameCount }} frames</p>
         <div class="sprite-image-scroll"><div class="sprite-image" :style="{ aspectRatio: `${activeLayout.imageWidth} / ${activeLayout.imageHeight}` }">
-           <img :src="sourceUrls.get(`sprite:${selected.id}`)" :alt="`${selected.id} sprite sheet`" />
+           <img :src="sourceUrls.get(`sprite:${selected.id}`)" :alt="`${selected.id} sprite sheet`" >
           <span v-for="frame in frames" :key="frame" class="sprite-frame" :style="{ left: `${(activeLayout.margin.x + (frame % activeLayout.columns) * (selected.frameSize.width + activeLayout.spacing.x)) / activeLayout.imageWidth * 100}%`, top: `${(activeLayout.margin.y + Math.floor(frame / activeLayout.columns) * (selected.frameSize.height + activeLayout.spacing.y)) / activeLayout.imageHeight * 100}%`, width: `${selected.frameSize.width / activeLayout.imageWidth * 100}%`, height: `${selected.frameSize.height / activeLayout.imageHeight * 100}%` }">{{ frame }}</span>
         </div></div>
         <p v-if="warning" class="sprite-warning">{{ warning }}</p>

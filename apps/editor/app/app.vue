@@ -66,15 +66,15 @@ useHead(() => ({
   link: [{ rel: "icon", type: "image/svg+xml", href: "/favicon.svg" }],
 }));
 const entityDefinitions = computed(() => {
-  entityVersion.value;
+  void entityVersion.value;
   return [...(project.value?.entities?.values() ?? [])];
 });
 const sprites = computed(() => {
-  spriteVersion.value;
+  void spriteVersion.value;
   return [...(project.value?.sprites?.values() ?? [])];
 });
 const selectedEntityDefinition = computed(() => {
-  entityVersion.value;
+  void entityVersion.value;
   return project.value?.entities?.get(selectedEntityDefinitionId.value) ?? null;
 });
 const selectedItem = computed(() => {
@@ -652,7 +652,7 @@ function removeSpriteAnimation({ spriteId, animationId }: { spriteId: string; an
     danger: true,
     action: () => {
       const next = structuredClone(sprite);
-      delete next.animations[animationId];
+      Reflect.deleteProperty(next.animations, animationId);
       updateSprite(next);
       status.value = `Deleted ${animationId} from ${spriteId}. Save to write files.`;
     },

@@ -11,7 +11,7 @@ const props = withDefaults(defineProps<{
   activeTab?: string;
   draggableTabs?: boolean;
   dockable?: boolean;
-}>(), { collapsible: true, headerless: false, tabs: () => [], draggableTabs: false, dockable: false });
+}>(), { collapsible: true, headerless: false, tabs: () => [], activeTab: "", draggableTabs: false, dockable: false });
 const emit = defineEmits<{ "update:activeTab": [id: string]; "tab-drag-start": [id: string, event: DragEvent]; "tab-drag-end": []; "tab-drag-over": [event: DragEvent]; "tab-drop": [event: DragEvent] }>();
 
 const collapsed = ref(false);
